@@ -116,16 +116,19 @@ app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Root Route (Development Health Check)
-app.get('/', (req, res) => {
-  res.send(`
-        <div style="font-family: sans-serif; text-align: center; padding: 50px; background: #020617; color: #00f3ff;">
-            <h1>Gyan Backend System</h1>
-            <p>Status: <span style="color: #22c55e;">ONLINE</span></p>
-            <p>Port: ${process.env.PORT || 5000}</p>
-        </div>
-    `);
-});
+// Root Route (Development Health Check / API Root)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/', (req, res) => {
+    res.send(`
+          <div style="font-family: sans-serif; text-align: center; padding: 50px; background: #020617; color: #00f3ff;">
+              <h1>Gyan Backend System</h1>
+              <p>Status: <span style="color: #22c55e;">ONLINE</span></p>
+              <p>Port: ${process.env.PORT || 5000}</p>
+              <p>Note: Root serving frontend in production mode.</p>
+          </div>
+      `);
+  });
+}
 
 // Server Port Configuration
 const PORT = process.env.PORT || 5000;
