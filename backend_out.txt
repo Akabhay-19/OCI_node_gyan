@@ -1,0 +1,11 @@
+
+[AI Service] Initialized
+  Provider: OPENROUTER
+  OpenRouter: ✓ Configured
+  Gemini: ✓ Configured (fallback)
+  Default Model: openai/gpt-4o-mini
+
+[Server] Environment: undefined
+[Server] Dist Path: D:\gyan_15_jan\GYAN_AI1-stable-jan-13\GYAN_AI1-stable-jan-13\dist
+[Server] Dist Exists: false
+[Server] Index Exists: false

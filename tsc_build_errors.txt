@@ -1,0 +1,15 @@
+src/App.tsx(603,7): error TS2322: Type '{ children: Element; logoUrl: string | undefined; userRole: UserRole | null; currentUser: Student | Teacher | Parent | undefined; ... 4 more ...; hideHeader: boolean; }' is not assignable to type 'IntrinsicAttributes & LayoutProps'.
+  Property 'hideHeader' does not exist on type 'IntrinsicAttributes & LayoutProps'.
+src/components/Dashboard.tsx(71,13): error TS2322: Type '{ schoolName: string; schoolProfile: SchoolProfile | undefined; students: Student[]; classrooms: Classroom[]; announcements: Announcement[]; ... 12 more ...; onTabChange: ((tab: string) => void) | undefined; }' is not assignable to type 'IntrinsicAttributes & TeacherDashboardProps & { onDeleteClass?: ((classId: string) => void) | undefined; onRenameClass?: ((classId: string, newName: string) => void) | undefined; onUpdateTeacher?: ((teacherId: string, assignedClassIds: string[]) => Promise<...>) | undefined; }'.
+  Property 'activeTab' does not exist on type 'IntrinsicAttributes & TeacherDashboardProps & { onDeleteClass?: ((classId: string) => void) | undefined; onRenameClass?: ((classId: string, newName: string) => void) | undefined; onUpdateTeacher?: ((teacherId: string, assignedClassIds: string[]) => Promise<...>) | undefined; }'.
+src/components/Dashboard.tsx(92,13): error TS2322: Type '{ schoolName: string; schoolProfile: SchoolProfile | undefined; students: Student[]; classrooms: Classroom[]; announcements: Announcement[]; ... 10 more ...; onTabChange: ((tab: string) => void) | undefined; }' is not assignable to type 'IntrinsicAttributes & AdminDashboardProps'.
+  Property 'activeTab' does not exist on type 'IntrinsicAttributes & AdminDashboardProps'.
+src/components/Features/MindMapGenerator.tsx(12,19): error TS7016: Could not find a declaration file for module 'dagre'. 'D:/Github/Gyan.ai-main/Gyan.ai-main/node_modules/dagre/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/dagre` if it exists or add a new declaration (.d.ts) file containing `declare module 'dagre';`
+src/components/Features/MindMapGenerator.tsx(37,9): error TS2322: Type '"top" | "left"' is not assignable to type 'Position | undefined'.
+  Type '"top"' is not assignable to type 'Position | undefined'.
+src/components/Features/MindMapGenerator.tsx(38,9): error TS2322: Type '"bottom" | "right"' is not assignable to type 'Position | undefined'.
+  Type '"bottom"' is not assignable to type 'Position | undefined'.
+src/components/Layout.tsx(20,115): error TS2339: Property 'hideHeader' does not exist on type 'LayoutProps'.
+src/components/Layout.tsx(116,41): error TS2304: Cannot find name 'Megaphone'.
+src/components/TeacherDashboard.tsx(445,53): error TS2367: This comparison appears to be unintentional because the types '"MCQ" | "SUBJECTIVE" | "UPLOAD"' and '"MIXED"' have no overlap.

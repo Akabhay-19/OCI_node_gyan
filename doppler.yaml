@@ -1,0 +1,3 @@
+setup:
+  project: gyan-learning-platform
+  config: dev

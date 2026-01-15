@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+.git
+.env
+*.log
+*.sqlite
+*.db
+backend/*.sqlite
+backend/*.db
+npm-debug.log

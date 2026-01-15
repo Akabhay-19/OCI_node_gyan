@@ -1,0 +1,4 @@
+src/services/geminiService.ts(255,15): error TS2451: Cannot redeclare block-scoped variable 'result'.
+src/services/geminiService.ts(258,15): error TS2451: Cannot redeclare block-scoped variable 'result'.
+src/services/geminiService.ts(258,47): error TS2345: Argument of type '{}' is not assignable to parameter of type 'SendMessageParameters'.
+  Property 'message' is missing in type '{}' but required in type 'SendMessageParameters'.

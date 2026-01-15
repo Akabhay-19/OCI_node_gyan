@@ -1,0 +1,33 @@
+=== OpenRouter API Key Test Results ===
+
+Test 1: Chat Completion Test
+  Status: 200
+  Model: openai/gpt-3.5-turbo
+  Response: API key working!
+  Result: SUCCESS
+
+Test 2: Account Information
+  Status: 200
+  Label: sk-or-v1-2ab...864
+  Credit Limit: $Unlimited
+  Usage: $0.0001
+  Rate Limit: -1 req/interval
+
+Test 3: Available Models (Top 15)
+  - google/gemini-3-flash-preview (ctx: 1048576)
+  - anthropic/claude-opus-4.5 (ctx: 200000)
+  - google/gemini-3-pro-image-preview (ctx: 65536)
+  - google/gemini-3-pro-preview (ctx: 1048576)
+  - anthropic/claude-haiku-4.5 (ctx: 200000)
+  - google/gemini-2.5-flash-image (ctx: 32768)
+  - anthropic/claude-sonnet-4.5 (ctx: 1000000)
+  - google/gemini-2.5-flash-preview-09-2025 (ctx: 1048576)
+  - google/gemini-2.5-flash-lite-preview-09-2025 (ctx: 1048576)
+  - google/gemini-2.5-flash-image-preview (ctx: 32768)
+  - openai/gpt-4o-audio-preview (ctx: 128000)
+  - anthropic/claude-opus-4.1 (ctx: 200000)
+  - google/gemini-2.5-flash-lite (ctx: 1048576)
+  - google/gemini-2.5-flash (ctx: 1048576)
+  - google/gemini-2.5-pro (ctx: 1048576)
+
+  Total models available: 353

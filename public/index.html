@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gyan | Future of Learning</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Outfit', 'sans-serif'],
+              display: ['Rajdhani', 'sans-serif'],
+            },
+            colors: {
+              neon: {
+                cyan: '#00f3ff',
+                pink: '#ff00ff',
+                purple: '#bc13fe',
+                blue: '#0066ff',
+              },
+              dark: {
+                bg: '#030712',
+                card: 'rgba(17, 24, 39, 0.7)',
+              }
+            },
+            animation: {
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'float': 'float 6s ease-in-out infinite',
+              'glow': 'glow 2s ease-in-out infinite alternate',
+              'lightning': 'lightning 0.2s ease-out',
+            },
+            keyframes: {
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-20px)' },
+              },
+              glow: {
+                '0%': { boxShadow: '0 0 5px #00f3ff, 0 0 10px #00f3ff' },
+                '100%': { boxShadow: '0 0 20px #00f3ff, 0 0 40px #00f3ff' },
+              },
+              lightning: {
+                 '0%': { opacity: 0 },
+                 '10%': { opacity: 1 },
+                 '20%': { opacity: 0 },
+                 '30%': { opacity: 1 },
+                 '100%': { opacity: 0 },
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        background-color: #020617;
+        color: #e2e8f0;
+        overflow-x: hidden;
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0f172a;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #3b82f6;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #60a5fa;
+      }
+      
+      .glass-panel {
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      
+      .neon-text {
+        text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+      }
+      
+      .neon-border-cyan {
+        box-shadow: 0 0 5px rgba(0, 243, 255, 0.2), inset 0 0 5px rgba(0, 243, 255, 0.1);
+      }
+      
+      .neon-border-purple {
+        box-shadow: 0 0 5px rgba(188, 19, 254, 0.2), inset 0 0 5px rgba(188, 19, 254, 0.1);
+      }
+
+      .lightning-flash {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.1);
+        pointer-events: none;
+        z-index: 50;
+        opacity: 0;
+      }
+      
+      .animate-flash {
+        animation: lightning 0.3s ease-out forwards;
+      }
+    </style>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "name": "Gyan - Futuristic Adaptive Learning",
+  "description": "A next-gen AI-powered edtech platform featuring neon aesthetics, adaptive learning, and gamified education for students, teachers, and parents.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

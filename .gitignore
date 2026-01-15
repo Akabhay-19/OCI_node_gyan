@@ -1,0 +1,43 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Mobile app directories (Android/Kotlin and Expo/React Native)
+kotlin_gyan/
+gyan-ai-mobile/
+*.apk
+*.aab
+*.dex
+*.class
+*.jar
+*.aar
+
+# Android build files
+build/
+.gradle/
+local.properties
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
