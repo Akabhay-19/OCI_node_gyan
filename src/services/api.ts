@@ -2,7 +2,7 @@ import { SchoolProfile, Student, Classroom, Announcement, Teacher, SiteContent }
 
 // In production, use relative path (served by same backend). In development, use localhost:5000.
 // Production: use relative path. Development: use localhost:5012
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5012/api');
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api');
 
 export const AI_MODELS = [
     { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.5 (Flash)', provider: 'Google' }
@@ -181,6 +181,13 @@ export const api = {
         localStorage.removeItem('GYAN_SCHOOL_ID');
     },
 
+    // --- Teacher History ---
+    getTeacherHistory: async (teacherId: string): Promise<any[]> => {
+        const res = await fetch(`${API_URL}/teachers/${teacherId}/history`);
+        if (!res.ok) return [];
+        return res.json();
+    },
+
     // --- Module History ---
     getModuleHistory: async (studentId: string): Promise<any[]> => {
         const res = await fetch(`${API_URL}/students/${studentId}/modules`);
@@ -256,13 +263,23 @@ export const api = {
         return res.json();
     },
 
-    generateRemedialContent: async (topic: string, gradeLevel: string, subject?: string): Promise<any> => {
-        const res = await fetch(`${API_URL}/remedial`, {
+    generateRemedialContent: async (topic: string, subTopic: string, gradeLevel: string, subject?: string): Promise<any> => {
+        const res = await fetch(`${API_URL}/remedial/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ topic, gradeLevel, subject })
+            body: JSON.stringify({ topic, subTopic, gradeLevel, subject })
         });
         if (!res.ok) throw new Error('Failed to generate remedial content');
+        return res.json();
+    },
+
+    resolveGap: async (studentId: string, gapId: string, score: number, totalQuestions: number, topic: string, subTopic: string): Promise<any> => {
+        const res = await fetch(`${API_URL}/remedial/resolve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ studentId, gapId, score, totalQuestions, topic, subTopic })
+        });
+        if (!res.ok) throw new Error('Failed to resolve gap');
         return res.json();
     },
 

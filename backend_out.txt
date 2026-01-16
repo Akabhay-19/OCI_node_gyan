@@ -1,11 +1,23 @@
 
+> gyan-app@0.1.0 server
+> node backend/server.js
+
+
 [AI Service] Initialized
   Provider: OPENROUTER
-  OpenRouter: ✓ Configured
-  Gemini: ✓ Configured (fallback)
-  Default Model: openai/gpt-4o-mini
+  OpenRouter: Γ£ô Configured
+  Gemini: Γ£ù Not configured
+  Default Model: xiaomi/mimo-v2-flash:free
 
 [Server] Environment: undefined
 [Server] Dist Path: D:\gyan_15_jan\GYAN_AI1-stable-jan-13\GYAN_AI1-stable-jan-13\dist
 [Server] Dist Exists: false
 [Server] Index Exists: false
+Backend server running on port 5000
+Frontend command: npm start
+Sync Function Disabled for Supabase Migration
+[PRESENTATION] Generating for: Photosynthesis
+[OpenRouter] Generating with model: xiaomi/mimo-v2-flash:free
+[PRESENTATION] Raw AI Response Type: string
+[PRESENTATION] Successfully parsed 12 slides
+[TEACHER HISTORY] Saving for test-teacher: Photosynthesis

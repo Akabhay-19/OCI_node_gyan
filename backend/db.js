@@ -95,6 +95,19 @@ db.serialize(() => {
     FOREIGN KEY(schoolId) REFERENCES schools(id)
   )`);
 
+  // Teacher History Table
+  db.run(`CREATE TABLE IF NOT EXISTS teacher_history (
+    id TEXT PRIMARY KEY,
+    teacherId TEXT,
+    type TEXT,
+    topic TEXT,
+    content TEXT,
+    gradeLevel TEXT,
+    subject TEXT,
+    createdAt TEXT,
+    FOREIGN KEY(teacherId) REFERENCES teachers(id)
+  )`);
+
   // Announcements Table
   db.run(`CREATE TABLE IF NOT EXISTS announcements (
     id TEXT PRIMARY KEY,

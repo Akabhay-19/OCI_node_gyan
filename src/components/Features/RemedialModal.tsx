@@ -35,7 +35,8 @@ export const RemedialModal: React.FC<RemedialModalProps> = ({ gap, onClose, onRe
                     topicToLearn = gap.topic;
                 }
 
-                const data = await api.generateRemedialContent(topicToLearn, gradeLevel, gap.subject);
+                // Pass both main topic and specific sub-topic for context
+                const data = await api.generateRemedialContent(gap.topic, topicToLearn, gradeLevel, gap.subject);
                 setContent(data);
                 setStep('LEARN');
             } catch (e) {
@@ -47,22 +48,43 @@ export const RemedialModal: React.FC<RemedialModalProps> = ({ gap, onClose, onRe
         loadContent();
     }, [gap]);
 
-    const handleSubmitQuiz = () => {
+    const handleSubmitQuiz = async () => {
         if (!content) return;
-        const calculatedScore = content.practiceQuestions.reduce((acc, q, i) => acc + (userAnswers[i] === q.correctAnswer ? 1 : 0), 0);
-        const percentage = (calculatedScore / content.practiceQuestions.length) * 100;
-        setScore(percentage);
-        setStep('RESULT');
 
-        if (percentage >= 80) {
-            const dataToSave = {
-                explanation: content.explanation,
-                questions: content.practiceQuestions,
-                userAnswers: userAnswers
-            };
-            setTimeout(() => {
-                onResolve(gap.id, dataToSave);
-            }, 2000);
+        // precise calculation
+        const calculatedScore = content.practiceQuestions.reduce((acc, q, i) => acc + (userAnswers[i] === q.correctAnswer ? 1 : 0), 0);
+
+        // Call Backend to Resolve
+        try {
+            const studentId = localStorage.getItem('GYAN_USER_ID');
+            if (!studentId) return;
+
+            const res = await api.resolveGap(
+                studentId,
+                gap.id,
+                calculatedScore,
+                content.practiceQuestions.length,
+                gap.topic,
+                gap.subTopic || gap.topic // Fallback
+            );
+
+            setScore(res.percentage);
+            setStep('RESULT');
+
+            if (res.resolved) {
+                // Determine if we need to call onResolve (parent update) immediately or wait
+                setTimeout(() => {
+                    onResolve(gap.id, {
+                        explanation: content.explanation,
+                        questions: content.practiceQuestions,
+                        userAnswers: userAnswers,
+                        resolvedAt: new Date().toISOString()
+                    });
+                }, 2000);
+            }
+        } catch (e) {
+            console.error("Failed to submit resolution:", e);
+            alert("Error submitting quiz. Please try again.");
         }
     };
 

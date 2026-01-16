@@ -8,8 +8,11 @@ import { UserProfileModal } from './UserProfileModal';
 import { AssignClassesModal } from './AssignClassesModal';
 import { ClassDetailView } from './ClassDetailView';
 import { LeaderboardView } from './LeaderboardView';
-import { Users, BarChart2, Plus, UserSearch, LogOut, FileText, CalendarClock, Hourglass, Megaphone, Copy, Grid, Filter, Briefcase, Clock, UserCheck, Sparkles, Timer, Layers, CheckCircle, AlertTriangle, MoreVertical, Trash2, Target, BookOpen, ArrowLeft, Upload } from 'lucide-react';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { TeacherRemedialView } from './Features/TeacherRemedialView';
+import { TeacherContentHub } from './Features/TeacherContentHub';
+import { Users, BarChart2, Plus, UserSearch, LogOut, FileText, CalendarClock, Hourglass, Megaphone, Copy, Grid, Filter, Briefcase, Clock, UserCheck, Sparkles, Timer, Layers, CheckCircle, AlertTriangle, MoreVertical, Trash2, Target, BookOpen, ArrowLeft, ArrowRight, Upload, PieChart as PieChartIcon } from 'lucide-react';
+
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -119,6 +122,7 @@ const AdminClassesTab: React.FC<{
             return cGrade === grade && cSubject === subject;
         });
     };
+
 
     // Get unique subjects for the selected grade
     const getSubjectsForGrade = (grade: string) => {
@@ -474,6 +478,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
     const activeTab = propActiveTab || localActiveTab;
 
     const handleTabChange = (tab: string) => {
+        console.log("TeacherDashboard: handleTabChange called with:", tab);
         setLocalActiveTab(tab);
         if (onTabChange) onTabChange(tab);
     };
@@ -501,12 +506,20 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
 
     // [NEW] View State for Assignment Details Modal
     const [selectedAssignmentForView, setSelectedAssignmentForView] = useState<Assignment | null>(null);
+    const [selectedGapForView, setSelectedGapForView] = useState<any | null>(null);
+    const [selectedGapCategory, setSelectedGapCategory] = useState<'AI' | 'ASSIGNMENT' | 'PRACTICE' | null>(null); // [NEW] State for gap category
+    const [activeRemedialTab, setActiveRemedialTab] = useState<'OPEN' | 'RESOLVED'>('OPEN'); // [NEW] Tab for Active vs Resolved
+    const [showGapAnalysis, setShowGapAnalysis] = useState(false); // [NEW] Toggle for Chart View
     const [studentHistory, setStudentHistory] = useState<any[]>([]);
+
 
 
     // [NEW] Fetch Student History when a student is selected
     React.useEffect(() => {
         if (!selectedStudentId) return;
+        setSelectedGapCategory(null); // Reset gap category when student changes
+        setActiveRemedialTab('OPEN'); // Reset tab to OPEN
+        setShowGapAnalysis(false); // Reset analysis view
         const fetchHistory = async () => {
             try {
                 const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
@@ -716,7 +729,17 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
                 />
             )}
 
+            {selectedGapForView && (
+                <TeacherRemedialView
+                    gap={selectedGapForView}
+                    studentName={myAllStudents.find(s => s.id === selectedStudentId)?.name || 'Unknown Student'}
+                    onClose={() => setSelectedGapForView(null)}
+                    gradeLevel={myAllStudents.find(s => s.id === selectedStudentId)?.grade || 'Grade 10'}
+                />
+            )}
+
             {/* New Redesigned Header */}
+
             <header className="mb-8">
                 <div className="flex justify-between items-start">
                     <div>
@@ -773,8 +796,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
             </header>
 
             <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
-                {['OVERVIEW', 'CLASSES', 'RANKINGS', 'ATTENDANCE', 'GAPS', userRole === 'ADMIN' && 'STUDENTS & CLASSES', userRole === 'ADMIN' && 'FACULTY', 'REMEDIAL_CENTER', 'ASSIGNMENTS', 'ANNOUNCEMENTS'].filter(Boolean).map((tab: any) => (
-                    <button key={tab} onClick={() => handleTabChange(tab)} className={`px-5 py-3 rounded-lg font-bold text-sm ${activeTab === tab ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple/50' : 'bg-white/5 text-gray-400'}`}>{tab}</button>
+                {['OVERVIEW', 'CLASSES', 'RANKINGS', 'ATTENDANCE', 'GAPS', userRole === 'ADMIN' && 'STUDENTS & CLASSES', userRole === 'ADMIN' && 'FACULTY', 'REMEDIAL_CENTER', 'ASSIGNMENTS', 'CONTENT_HUB', 'ANNOUNCEMENTS'].filter(Boolean).map((tab: any) => (
+                    <button key={tab} onClick={() => handleTabChange(tab)} className={`px-5 py-3 rounded-lg font-bold text-sm ${activeTab === tab ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple/50' : 'bg-white/5 text-gray-400'}`}>{tab === 'CONTENT_HUB' ? 'CONTENT HUB' : tab}</button>
                 ))}
             </div>
 
@@ -1143,8 +1166,25 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
                                 const stu = myAllStudents.find(s => s.id === selectedStudentId);
                                 if (!stu) return null;
 
-                                const aiGaps = (stu.weaknessHistory || []).filter(w => w.source === 'AI_LEARNING');
-                                const assignmentGaps = (stu.weaknessHistory || []).filter(w => w.source !== 'AI_LEARNING'); // Default or explicit ASSIGNMENT
+                                // Filter gaps based on the selected TAB (Open vs Resolved)
+                                const filteredGaps = (stu.weaknessHistory || []).filter(w => w.status === activeRemedialTab);
+
+                                const aiGaps = filteredGaps.filter(w => w.source === 'AI_LEARNING' || !w.source);
+                                const assignmentGaps = filteredGaps.filter(w => w.source === 'ASSIGNMENT');
+                                const practiceGaps = filteredGaps.filter(w => w.source === 'PRACTICE');
+
+                                // Chart Data Preparation
+                                const allGaps = stu.weaknessHistory || [];
+                                const gapsBySource = [
+                                    { name: 'AI Learning', value: allGaps.filter(w => w.source === 'AI_LEARNING' || !w.source).length, color: '#a855f7' }, // Neon Purple
+                                    { name: 'Assignment', value: allGaps.filter(w => w.source === 'ASSIGNMENT').length, color: '#3b82f6' }, // Blue
+                                    { name: 'Practice', value: allGaps.filter(w => w.source === 'PRACTICE').length, color: '#22c55e' }, // Green
+                                ].filter(d => d.value > 0);
+
+                                const gapsByStatus = [
+                                    { name: 'Open (Active)', value: allGaps.filter(w => w.status === 'OPEN').length, color: '#ef4444' }, // Red
+                                    { name: 'Resolved', value: allGaps.filter(w => w.status === 'RESOLVED').length, color: '#22c55e' }, // Green
+                                ];
 
                                 return (
                                     <div className="space-y-8">
@@ -1153,53 +1193,237 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
                                                 <h3 className="text-3xl font-bold text-white">{getDisplayName ? getDisplayName(stu) : stu.name}</h3>
                                                 <p className="text-gray-400">Remedial Profile</p>
                                             </div>
-                                            <div className="text-right">
-                                                <div className="text-2xl font-bold text-neon-cyan">{stu.avgScore}%</div>
-                                                <div className="text-xs text-gray-500">Avg Score</div>
+                                            <div className="flex items-center gap-4">
+                                                <button
+                                                    onClick={() => setShowGapAnalysis(!showGapAnalysis)}
+                                                    className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all border ${showGapAnalysis ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'}`}
+                                                >
+                                                    <PieChartIcon className="w-4 h-4" />
+                                                    {showGapAnalysis ? 'Hide Analysis' : 'View Distribution Chart'}
+                                                </button>
+                                                <div className="text-right">
+                                                    <div className="text-2xl font-bold text-neon-cyan">{stu.avgScore}%</div>
+                                                    <div className="text-xs text-gray-500">Avg Score</div>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* AI Detected Gaps */}
-                                        <div>
-                                            <h4 className="text-neon-purple font-bold mb-4 flex items-center gap-2"><Sparkles className="w-4 h-4" /> AI Detected Gaps</h4>
-                                            {aiGaps.length === 0 ? <p className="text-gray-500 italic">No AI-detected gaps.</p> : (
-                                                <div className="grid grid-cols-1 gap-3">
-                                                    {aiGaps.map(w => (
-                                                        <div key={w.id} className="p-4 bg-white/5 border border-neon-purple/30 rounded-lg flex justify-between items-center">
-                                                            <div>
-                                                                <p className="text-white font-bold">{w.topic}</p>
-                                                                {w.subTopic && <p className="text-sm text-neon-purple">{w.subTopic}</p>}
-                                                                <p className="text-xs text-gray-500 mt-1">Detected: {new Date(w.detectedAt).toLocaleDateString()}</p>
-                                                            </div>
-                                                            <span className={`px-3 py-1 rounded text-xs font-bold ${w.status === 'OPEN' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
-                                                                {w.status}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
+                                        {/* OPTIONAL: VISUAL ANALYSIS SECTION */}
+                                        {showGapAnalysis && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-4 fade-in duration-300">
+                                                <NeonCard className="p-6 bg-black/20">
+                                                    <h4 className="text-white font-bold mb-4 flex items-center gap-2"><PieChartIcon className="w-4 h-4 text-neon-purple" /> Distribution by Source</h4>
+                                                    <div className="h-64 w-full">
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <PieChart>
+                                                                <Pie
+                                                                    data={gapsBySource}
+                                                                    cx="50%"
+                                                                    cy="50%"
+                                                                    innerRadius={60}
+                                                                    outerRadius={80}
+                                                                    paddingAngle={5}
+                                                                    dataKey="value"
+                                                                >
+                                                                    {gapsBySource.map((entry, index) => (
+                                                                        <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                                                                    ))}
+                                                                </Pie>
+                                                                <Tooltip
+                                                                    contentStyle={{ backgroundColor: '#0f1115', borderColor: '#333', borderRadius: '8px', color: '#fff' }}
+                                                                    itemStyle={{ color: '#fff' }}
+                                                                />
+                                                                <Legend verticalAlign="bottom" height={36} />
+                                                            </PieChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                </NeonCard>
+
+                                                <NeonCard className="p-6 bg-black/20">
+                                                    <h4 className="text-white font-bold mb-4 flex items-center gap-2"><BarChart className="w-4 h-4 text-neon-cyan" /> Resolution Status</h4>
+                                                    <div className="h-64 w-full">
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <BarChart data={gapsByStatus}>
+                                                                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                                                                <XAxis dataKey="name" stroke="#666" fontSize={12} tickLine={false} axisLine={false} />
+                                                                <YAxis stroke="#666" fontSize={12} tickLine={false} axisLine={false} />
+                                                                <Tooltip
+                                                                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                                                                    contentStyle={{ backgroundColor: '#0f1115', borderColor: '#333', borderRadius: '8px', color: '#fff' }}
+                                                                />
+                                                                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                                                    {gapsByStatus.map((entry, index) => (
+                                                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                                                    ))}
+                                                                </Bar>
+                                                            </BarChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                </NeonCard>
+                                            </div>
+                                        )}
+
+                                        {/* Active / Resolved Tab Switcher */}
+                                        <div className="flex gap-4 border-b border-white/10 pb-4">
+                                            <button
+                                                onClick={() => { setActiveRemedialTab('OPEN'); setSelectedGapCategory(null); }}
+                                                className={`pb-2 px-1 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeRemedialTab === 'OPEN' ? 'border-red-400 text-red-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                                            >
+                                                <AlertTriangle className="w-4 h-4" /> Active Gaps
+                                                <span className="bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full">{(stu.weaknessHistory || []).filter(w => w.status === 'OPEN').length}</span>
+                                            </button>
+                                            <button
+                                                onClick={() => { setActiveRemedialTab('RESOLVED'); setSelectedGapCategory(null); }}
+                                                className={`pb-2 px-1 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeRemedialTab === 'RESOLVED' ? 'border-green-400 text-green-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                                            >
+                                                <CheckCircle className="w-4 h-4" /> Resolved History
+                                                <span className="bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded-full">{(stu.weaknessHistory || []).filter(w => w.status === 'RESOLVED').length}</span>
+                                            </button>
                                         </div>
 
-                                        {/* Assignment Gaps */}
-                                        <div>
-                                            <h4 className="text-blue-400 font-bold mb-4 flex items-center gap-2"><Target className="w-4 h-4" /> Assignment Weaknesses</h4>
-                                            {assignmentGaps.length === 0 ? <p className="text-gray-500 italic">No assignment-based weaknesses.</p> : (
-                                                <div className="grid grid-cols-1 gap-3">
-                                                    {assignmentGaps.map(w => (
-                                                        <div key={w.id} className="p-4 bg-white/5 border border-blue-500/30 rounded-lg flex justify-between items-center">
-                                                            <div>
-                                                                <p className="text-white font-bold">{w.topic}</p>
-                                                                {w.subTopic && <p className="text-sm text-blue-300">{w.subTopic}</p>}
-                                                                <p className="text-xs text-gray-500 mt-1">Detected: {new Date(w.detectedAt).toLocaleDateString()}</p>
-                                                            </div>
-                                                            <span className={`px-3 py-1 rounded text-xs font-bold ${w.status === 'OPEN' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
-                                                                {w.status}
-                                                            </span>
-                                                        </div>
-                                                    ))}
+                                        {/* Category Selection or List View */}
+                                        {!selectedGapCategory ? (
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+                                                <div
+                                                    onClick={() => setSelectedGapCategory('AI')}
+                                                    className="p-6 bg-gradient-to-br from-neon-purple/20 to-transparent border border-neon-purple/30 rounded-xl cursor-pointer hover:border-neon-purple transition-all hover:scale-[1.02] flex flex-col items-center text-center gap-4 group"
+                                                >
+                                                    <div className="w-16 h-16 rounded-full bg-neon-purple/20 flex items-center justify-center group-hover:bg-neon-purple group-hover:text-black transition-colors">
+                                                        <Sparkles className="w-8 h-8 text-neon-purple group-hover:text-black" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xl font-bold text-white">AI Learn Gaps</h4>
+                                                        <p className="text-gray-400 text-xs mt-1">From AI study sessions.</p>
+                                                        <p className="text-neon-purple font-bold mt-2">{aiGaps.length} Found</p>
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
+
+                                                <div
+                                                    onClick={() => setSelectedGapCategory('ASSIGNMENT')}
+                                                    className="p-6 bg-gradient-to-br from-blue-500/20 to-transparent border border-blue-500/30 rounded-xl cursor-pointer hover:border-blue-500 transition-all hover:scale-[1.02] flex flex-col items-center text-center gap-4 group"
+                                                >
+                                                    <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-black transition-colors">
+                                                        <BookOpen className="w-8 h-8 text-blue-500 group-hover:text-black" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xl font-bold text-white">Assignment Gaps</h4>
+                                                        <p className="text-gray-400 text-xs mt-1">From assignments.</p>
+                                                        <p className="text-blue-400 font-bold mt-2">{assignmentGaps.length} Found</p>
+                                                    </div>
+                                                </div>
+
+                                                <div
+                                                    onClick={() => setSelectedGapCategory('PRACTICE')}
+                                                    className="p-6 bg-gradient-to-br from-green-500/20 to-transparent border border-green-500/30 rounded-xl cursor-pointer hover:border-green-500 transition-all hover:scale-[1.02] flex flex-col items-center text-center gap-4 group"
+                                                >
+                                                    <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center group-hover:bg-green-500 group-hover:text-black transition-colors">
+                                                        <Target className="w-8 h-8 text-green-500 group-hover:text-black" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xl font-bold text-white">Practice Gaps</h4>
+                                                        <p className="text-gray-400 text-xs mt-1">From practice quizzes.</p>
+                                                        <p className="text-green-400 font-bold mt-2">{practiceGaps.length} Found</p>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        ) : (
+                                            <div className="animate-in slide-in-from-right-4">
+                                                <button
+                                                    onClick={() => setSelectedGapCategory(null)}
+                                                    className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
+                                                >
+                                                    <ArrowLeft className="w-4 h-4" /> Back to Categories
+                                                </button>
+
+                                                {selectedGapCategory === 'AI' && (
+                                                    <div>
+                                                        <h4 className="text-neon-purple font-bold mb-4 flex items-center gap-2"><Sparkles className="w-4 h-4" /> AI Detected Gaps</h4>
+                                                        {aiGaps.length === 0 ? <p className="text-gray-500 italic">No AI-detected gaps.</p> : (
+                                                            <div className="grid grid-cols-1 gap-3">
+                                                                {aiGaps.map(w => (
+                                                                    <div
+                                                                        key={w.id}
+                                                                        className="p-4 bg-white/5 border border-neon-purple/30 rounded-lg flex justify-between items-center cursor-pointer hover:bg-white/10 transition-colors group"
+                                                                        onClick={() => setSelectedGapForView(w)}
+                                                                    >
+                                                                        <div>
+                                                                            <p className="text-white font-bold group-hover:text-neon-purple transition-colors">{w.topic}</p>
+                                                                            {w.subTopic && <p className="text-sm text-neon-purple">{w.subTopic}</p>}
+                                                                            <p className="text-xs text-gray-500 mt-1">Detected: {new Date(w.detectedAt).toLocaleDateString()}</p>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-3">
+                                                                            <span className={`px-3 py-1 rounded text-xs font-bold ${w.status === 'OPEN' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                                                                                {w.status}
+                                                                            </span>
+                                                                            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {selectedGapCategory === 'ASSIGNMENT' && (
+                                                    <div>
+                                                        <h4 className="text-blue-400 font-bold mb-4 flex items-center gap-2"><BookOpen className="w-4 h-4" /> Assignment Weaknesses</h4>
+                                                        {assignmentGaps.length === 0 ? <p className="text-gray-500 italic">No assignment-based weaknesses.</p> : (
+                                                            <div className="grid grid-cols-1 gap-3">
+                                                                {assignmentGaps.map(w => (
+                                                                    <div
+                                                                        key={w.id}
+                                                                        className="p-4 bg-white/5 border border-blue-500/30 rounded-lg flex justify-between items-center cursor-pointer hover:bg-white/10 transition-colors group"
+                                                                        onClick={() => setSelectedGapForView(w)}
+                                                                    >
+                                                                        <div>
+                                                                            <p className="text-white font-bold group-hover:text-blue-400 transition-colors">{w.topic}</p>
+                                                                            {w.subTopic && <p className="text-sm text-blue-300">{w.subTopic}</p>}
+                                                                            <p className="text-xs text-gray-500 mt-1">Detected: {new Date(w.detectedAt).toLocaleDateString()}</p>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-3">
+                                                                            <span className={`px-3 py-1 rounded text-xs font-bold ${w.status === 'OPEN' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                                                                                {w.status}
+                                                                            </span>
+                                                                            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {selectedGapCategory === 'PRACTICE' && (
+                                                    <div>
+                                                        <h4 className="text-green-400 font-bold mb-4 flex items-center gap-2"><Target className="w-4 h-4" /> Practice Weaknesses</h4>
+                                                        {practiceGaps.length === 0 ? <p className="text-gray-500 italic">No practice-based weaknesses.</p> : (
+                                                            <div className="grid grid-cols-1 gap-3">
+                                                                {practiceGaps.map(w => (
+                                                                    <div
+                                                                        key={w.id}
+                                                                        className="p-4 bg-white/5 border border-green-500/30 rounded-lg flex justify-between items-center cursor-pointer hover:bg-white/10 transition-colors group"
+                                                                        onClick={() => setSelectedGapForView(w)}
+                                                                    >
+                                                                        <div>
+                                                                            <p className="text-white font-bold group-hover:text-green-400 transition-colors">{w.topic}</p>
+                                                                            {w.subTopic && <p className="text-sm text-green-300">{w.subTopic}</p>}
+                                                                            <p className="text-xs text-gray-500 mt-1">Detected: {new Date(w.detectedAt).toLocaleDateString()}</p>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-3">
+                                                                            <span className={`px-3 py-1 rounded text-xs font-bold ${w.status === 'OPEN' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                                                                                {w.status}
+                                                                            </span>
+                                                                            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
 
                                         {/* Assignment History Table */}
                                         <div className="mt-8 pt-8 border-t border-white/10">
@@ -1545,6 +1769,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
                             )}
                         </div>
                     </div >
+                )
+            }
+
+            {
+                activeTab === 'CONTENT_HUB' && (
+                    <TeacherContentHub currentUser={currentUser} schoolName={schoolName} schoolLogo={schoolProfile?.logoUrl} />
                 )
             }
 

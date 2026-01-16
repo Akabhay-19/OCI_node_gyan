@@ -195,6 +195,7 @@ const AppContent: React.FC = () => {
         'RANKINGS': 'RANKINGS',
         'GAPS': 'GAPS',
         'REMEDIAL_CENTER': 'REMEDIAL_CENTER',
+        'CONTENT_HUB': 'CONTENT_HUB',
         // Admin tabs
         'TEACHERS': 'TEACHERS',
         'STUDENTS': 'STUDENTS',

@@ -69,7 +69,8 @@ async function generateWithOpenRouter(prompt, options = {}) {
             model: model,
             messages: [{ role: 'user', content: prompt }],
             max_tokens: maxTokens,
-            response_format: jsonMode ? { type: 'json_object' } : undefined
+            // Removing response_format as it causes 400 errors for many free models on OpenRouter
+            // response_format: jsonMode ? { type: 'json_object' } : undefined
         })
     });
 

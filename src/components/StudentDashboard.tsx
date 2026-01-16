@@ -1112,9 +1112,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                                             <div className="text-xs text-gray-500 mb-3">Score: <span className="text-red-400 font-bold">{Math.round(gap.score || 0)}%</span></div>
                                                             <div className="flex justify-between items-center">
                                                                 <span className="text-xs text-gray-500">{new Date(gap.detectedAt).toLocaleDateString()}</span>
-                                                                <NeonButton size="sm" variant="secondary" onClick={() => setSelectedResolvedGap(gap)}>
-                                                                    View Details <ArrowRight className="w-3 h-3 ml-1" />
-                                                                </NeonButton>
+                                                                <div className="flex gap-2">
+                                                                    {/* [FIX] Changed to Resolve Button */}
+                                                                    <NeonButton size="sm" variant="primary" glow onClick={() => setSelectedGap(gap)}>
+                                                                        <Sparkles className="w-3 h-3 mr-1" /> Resolve
+                                                                    </NeonButton>
+                                                                </div>
                                                             </div>
                                                         </NeonCard>
                                                     ))}
@@ -1609,6 +1612,32 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </>
             )
             }
+            {/* [NEW] Remedial Resolution Modal */}
+            {selectedGap && (
+                <RemedialModal
+                    gap={selectedGap}
+                    gradeLevel={student.grade}
+                    onClose={() => setSelectedGap(null)}
+                    onResolve={(gapId, data) => {
+                        // 1. Update Local State
+                        const updatedHistory = (student.weaknessHistory || []).map(w => {
+                            if (w.id === gapId) {
+                                return { ...w, status: 'RESOLVED', resolvedAt: new Date().toISOString(), remedialData: data };
+                            }
+                            return w;
+                        });
+
+                        const updatedStudent = { ...student, weaknessHistory: updatedHistory };
+                        if (onUpdateStudent) onUpdateStudent(updatedStudent);
+
+                        // 2. Close Modal
+                        setSelectedGap(null);
+                        alert("Gap Resolved! Great work.");
+                    }}
+                />
+            )}
+
+
         </div >
     );
 };

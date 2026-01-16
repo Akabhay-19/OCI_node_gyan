@@ -172,6 +172,34 @@ const cleanText = (text) => {
   return cleaned;
 };
 
+// --- Local Teacher History (Fallback) ---
+const TEACHER_HISTORY_FILE = path.join(process.cwd(), 'teacher_history.json');
+
+const getLocalTeacherHistory = (teacherId) => {
+  try {
+    if (fs.existsSync(TEACHER_HISTORY_FILE)) {
+      const allHistory = JSON.parse(fs.readFileSync(TEACHER_HISTORY_FILE, 'utf-8'));
+      return allHistory.filter(h => h.teacherId === teacherId);
+    }
+  } catch (e) {
+    console.error("Local history read error:", e);
+  }
+  return [];
+};
+
+const saveLocalTeacherHistory = (item) => {
+  try {
+    let history = [];
+    if (fs.existsSync(TEACHER_HISTORY_FILE)) {
+      history = JSON.parse(fs.readFileSync(TEACHER_HISTORY_FILE, 'utf-8'));
+    }
+    history.unshift({ id: 'local_' + Date.now(), ...item });
+    fs.writeFileSync(TEACHER_HISTORY_FILE, JSON.stringify(history.slice(0, 200), null, 2));
+  } catch (e) {
+    console.error("Local history save error:", e);
+  }
+};
+
 // --- Helper: Save Module History ---
 const saveModuleHistory = async (studentId, type, topic, content, classId) => {
   if (!studentId) {
@@ -198,13 +226,44 @@ const saveModuleHistory = async (studentId, type, topic, content, classId) => {
 
     if (error) {
       console.error("[HISTORY] Save FAILED:", error.message);
-      console.error("[HISTORY] Error code:", error.code);
-      console.error("[HISTORY] Error details:", JSON.stringify(error));
     } else {
       console.log("[HISTORY] Save SUCCESS! Inserted ID:", data?.[0]?.id || 'unknown');
     }
   } catch (e) {
     console.error("[HISTORY] Exception:", e.message);
+  }
+};
+
+// --- Helper: Save Teacher History ---
+const saveTeacherHistory = async (teacherId, type, topic, content, gradeLevel, subject) => {
+  if (!teacherId) {
+    console.warn("[TEACHER HISTORY] Skipping save - no teacherId provided");
+    return;
+  }
+
+  const item = {
+    teacherId,
+    type,
+    topic,
+    content,
+    gradeLevel,
+    subject,
+    createdAt: new Date().toISOString()
+  };
+
+  console.log(`[TEACHER HISTORY] Saving for ${teacherId}: ${topic}`);
+
+  // 1. Save locally ALWAYS (as a robust backup)
+  saveLocalTeacherHistory(item);
+
+  // 2. Try Supabase
+  try {
+    const { error } = await supabase.from('teacher_history').insert([item]);
+    if (error) {
+      console.error("[TEACHER HISTORY] Supabase Error:", error.message);
+    }
+  } catch (e) {
+    console.error("[TEACHER HISTORY] Supabase Exception:", e.message);
   }
 };
 
@@ -816,6 +875,198 @@ app.post('/api/remedial', async (req, res) => {
   } catch (error) {
     console.error("Remedial Error:", error);
     res.status(500).json({ error: "Failed to generate remedial content" });
+  }
+});
+
+// 9. Teacher Lesson Plan Generator
+app.post('/api/teacher/lesson-plan', async (req, res) => {
+  try {
+    const { topic, subject, gradeLevel, depth, duration } = req.body;
+
+    const prompt = `
+    ROLE: You are an Expert Education Advisor and Curriculum Architect with 15-20 years of experience in pedagogy and instructional design. 
+    You excel at creating engaging, high-impact lesson plans that cater to diverse learning styles while ensuring deep conceptual understanding.
+
+    TASK: Create a detailed, engaging lesson plan for a ${duration || '60 minute'} class.
+    
+    TOPIC: ${topic}
+    SUBJECT: ${subject}
+    GRADE: ${gradeLevel}
+    DEPTH: ${depth || 'Standard curriculum depth'}
+
+    OUTPUT FORMAT: Markdown (clean, structured, ready to render).
+
+    STRUCTURE:
+    # Lesson Plan: [Topic Name]
+    
+    ## 🎯 Learning Objectives
+    - [Objective 1]
+    - [Objective 2]
+    
+    ## ⏱️ Lesson Flow
+    1. **Hook / Warm-up (5 mins):** [Activity]
+    2. **Core Concept Delivery (20 mins):** [Explanation strategies]
+    3. **Guided Practice (15 mins):** [Activity]
+    4. **Independent Application (15 mins):** [Activity]
+    5. **Closure (5 mins):** [Wrap up]
+
+    ## 🗝️ Key Concepts & Definitions
+    - **[Concept 1]:** Definition
+    
+    ## 💡 Teacher Tips / Common Misconceptions
+    - [Tip 1]
+
+    ## 📝 Assessment / Checks for Understanding
+    - [Question 1]
+    - [Question 2]
+
+    Style: Professional, encouraging, and practical for immediate classroom use.
+    DO NOT wrap in a code block. Return raw markdown text.
+    `;
+
+    const response = await generate(prompt, {
+      json: false
+    });
+
+    const lessonPlanMarkdown = response.text; // Text is already markdown
+
+    // Save to history if teacherId provided
+    const teacherId = req.body.teacherId;
+    if (teacherId) {
+      await saveTeacherHistory(teacherId, 'LESSON_PLAN', topic, lessonPlanMarkdown, gradeLevel, subject);
+    }
+
+    res.json({
+      markdown: lessonPlanMarkdown,
+      _meta: {
+        model: response.model,
+        provider: response.provider || 'openrouter'
+      }
+    });
+
+  } catch (error) {
+    console.error("Lesson Plan Gen Error:", error);
+    res.status(500).json({ error: "Failed to generate lesson plan" });
+  }
+});
+
+// 10. Teacher Presentation Generator
+app.post('/api/teacher/presentation', async (req, res) => {
+  try {
+    const { topic, description, gradeLevel, teacherId, subject } = req.body;
+
+    const prompt = `
+    ROLE: You are an expert Visual Content Creator and Educational Designer with 15 years of experience in pedagogical visualizations.
+    TASK: Create a high-quality, eye-catchy, and detailed presentation structure for a class.
+    
+    TOPIC: ${topic}
+    GRADE: ${gradeLevel}
+    SUBJECT: ${subject || 'General Education'}
+    ADDITIONAL INFO: ${description || 'Standard curriculum depth'}
+
+    OUTPUT FORMAT: Strictly valid JSON array of slide objects.
+    
+    JSON SCHEMA FOR EACH SLIDE:
+    {
+      "title": "Concise Slide Title",
+      "content": ["Engaging bullet point 1", "Engaging bullet point 2", "Engaging bullet point 3"],
+      "footer": "Short key takeaway or transition prompt",
+      "visualSuggestion": "Visual description for the teacher (e.g., 'Diagram showing the water cycle', 'Close-up image of a leaf cell')"
+    }
+
+    SLIDE COUNT: 8-12 slides.
+    
+    SLIDE PROGRESSION:
+    1. Title Slide
+    2. Hook / Engagement Activity
+    3. Learning Objectives (What will students learn?)
+    4-10. Core Concepts (Break topics into small, high-impact digestible chunks)
+    11. Summary / Quick Recap
+    12. Q&A / Closing Activity
+
+    CRITICAL RULES:
+    1. Return ONLY a valid JSON array. No markdown code blocks, no preamble.
+    2. Each bullet point should be professional yet accessible.
+    3. Ensure the content is "Visual-First" — focused on what the teacher explains, not walls of text.
+    `;
+
+    console.log(`[PRESENTATION] Generating for: ${topic}`);
+
+    const response = await generate(prompt, {
+      json: true
+    });
+
+    console.log(`[PRESENTATION] Raw AI Response Type: ${typeof response.text}`);
+    // console.log(`[PRESENTATION] Raw AI Response: ${response.text.substring(0, 500)}...`);
+
+    let slides = [];
+    try {
+      const cleanResponse = cleanText(response.text);
+      slides = JSON.parse(cleanResponse);
+    } catch (parseError) {
+      console.error("[PRESENTATION] JSON Parse Failed. Trying secondary clean...", parseError.message);
+      try {
+        // Fallback: try to find the first [ and last ]
+        const start = response.text.indexOf('[');
+        const end = response.text.lastIndexOf(']') + 1;
+        if (start !== -1 && end !== -1) {
+          const fallbackClean = response.text.substring(start, end);
+          slides = JSON.parse(fallbackClean);
+        } else {
+          throw new Error("Could not find JSON array in response");
+        }
+      } catch (fError) {
+        console.error("[PRESENTATION] Secondary Parse also FAILED:", fError.message);
+        throw new Error("AI returned malformed data format");
+      }
+    }
+
+    console.log(`[PRESENTATION] Successfully parsed ${slides.length} slides`);
+
+    // Save to history if teacherId provided
+    if (teacherId) {
+      await saveTeacherHistory(teacherId, 'PRESENTATION', topic, slides, gradeLevel, subject);
+    }
+
+    res.json({
+      slides,
+      _meta: {
+        model: response.model,
+        provider: response.provider || 'openrouter'
+      }
+    });
+
+  } catch (error) {
+    console.error("Presentation Gen Error:", error);
+    res.status(500).json({ error: "Failed to generate presentation" });
+  }
+});
+
+// GET Teacher History
+app.get('/api/teachers/:teacherId/history', async (req, res) => {
+  const { teacherId } = req.params;
+  try {
+    // 1. Try Supabase first
+    const { data, error } = await supabase
+      .from('teacher_history')
+      .select('*')
+      .eq('teacherId', teacherId)
+      .order('createdAt', { ascending: false });
+
+    if (!error && data && data.length > 0) {
+      return res.json(data);
+    }
+
+    // 2. Fallback to local if Supabase is empty or errors
+    console.log(`[TEACHER HISTORY] Falling back to local for ${teacherId}`);
+    const localData = getLocalTeacherHistory(teacherId);
+    res.json(localData);
+
+  } catch (err) {
+    console.error("Teacher History Fetch Error:", err);
+    // Even on error, return local
+    const localData = getLocalTeacherHistory(teacherId);
+    res.json(localData);
   }
 });
 
@@ -1593,7 +1844,67 @@ app.post('/api/assignments', async (req, res) => {
   }
 });
 
-// --- REFACTORED QUIZ SUBMISSION & GAP ANALYSIS ---
+// --- REMEDIAL RESOLUTION FLOW ---
+
+// 1. Generate Remedial Content (Explanation + Quiz)
+app.post('/api/remedial/generate', async (req, res) => {
+  const { topic, subTopic, gradeLevel, subject } = req.body;
+  try {
+    const prompt = `You are an expert tutor. A student has a specific learning gap: "${subTopic}" (within the broader topic of "${topic}").
+    
+    1. Provide a clear, easy-to-understand EXPLANATION of this specific concept (approx 150 words). Use analogies if helpful.
+    2. Generate 5 multiple-choice questions (MCQs) to test understanding of *this specific concept*.
+    
+    Return JSON format:
+    {
+      "explanation": "Markdown text here...",
+      "questions": [
+        { "question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": 0 }
+      ]
+    }`;
+
+    const aiResponse = await generate(prompt, { json: true });
+    const content = JSON.parse(cleanText(aiResponse.text));
+
+    res.json(content);
+  } catch (err) {
+    console.error("Remedial Gen Error:", err);
+    res.status(500).json({ error: "Failed to generate remedial content" });
+  }
+});
+
+// 2. Submit Resolution Quiz
+app.post('/api/remedial/resolve', async (req, res) => {
+  const { studentId, gapId, score, totalQuestions } = req.body;
+
+  try {
+    const percentage = (score / totalQuestions) * 100;
+    const isResolved = percentage >= 80; // STRICT CRITERIA
+
+    if (isResolved) {
+      // Fetch student to update history
+      const { data: student } = await supabase.from('students').select('weaknessHistory').eq('id', studentId).single();
+      let history = student.weaknessHistory || [];
+
+      // Find and Update Gap
+      const gapIndex = history.findIndex(g => g.id === gapId || (g.topic === req.body.topic && g.subTopic === req.body.subTopic)); // Fallback match
+
+      if (gapIndex !== -1) {
+        history[gapIndex].status = 'RESOLVED';
+        history[gapIndex].resolvedAt = new Date().toISOString();
+
+        await supabase.from('students').update({ weaknessHistory: history }).eq('id', studentId);
+      }
+    }
+
+    res.json({ success: true, resolved: isResolved, percentage });
+  } catch (err) {
+    console.error("Gap Resolution Error:", err);
+    res.status(500).json({ error: "Failed to resolve gap" });
+  }
+});
+
+// --- QUIZ SUBMISSION ROUTE ---
 app.post('/api/quiz/submit', async (req, res) => {
   try {
     const { studentId, topic, userAnswers, questions, classId, source = 'AI_LEARNING', subject } = req.body;
@@ -1705,6 +2016,35 @@ app.post('/api/quiz/submit', async (req, res) => {
 
             newGaps = meaningfulNewGaps;
             console.log(`[QUIZ SUBMIT] Processed Gaps: ${meaningfulNewGaps.length} Created, ${gapsUpdated ? 'Some' : 'None'} Updated.`);
+          } else if (scorePercentage < 40) {
+            console.log(`[QUIZ SUBMIT] AI found no gaps, but score is low (${scorePercentage}%). Creating fallback gap.`);
+
+            // Reuse Fallback Logic
+            const fallbackGap = {
+              id: `GAP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              topic: topic,
+              subTopic: topic,
+              subject: subject || 'General',
+              source: source,
+              classId: classId,
+              detectedAt: new Date().toISOString(),
+              status: 'OPEN',
+              score: scorePercentage,
+              remedialCompleted: false
+            };
+
+            // Avoid duplicates check
+            const existingIndex = currentHistory.findIndex(existing =>
+              existing.status === 'OPEN' &&
+              existing.topic === fallbackGap.topic &&
+              existing.subTopic === fallbackGap.subTopic
+            );
+
+            if (existingIndex === -1) {
+              const finalHistory = [...currentHistory, fallbackGap];
+              await supabase.from('students').update({ weaknessHistory: finalHistory }).eq('id', studentId);
+              newGaps = [fallbackGap];
+            }
           } else {
             console.log(`[QUIZ SUBMIT] No changes to gaps key.`);
           }
@@ -1713,7 +2053,36 @@ app.post('/api/quiz/submit', async (req, res) => {
         console.error("[QUIZ SUBMIT] AI Analysis Failed:", aiErr);
         // Fallback: Create generic gap if score is very low
         if (scorePercentage < 40) {
-          // Fallback logic could go here
+          console.log("[QUIZ SUBMIT] Low score detected, creating fallback gap.");
+          const fallbackGap = {
+            id: `GAP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            topic: topic,
+            subTopic: topic, // Use main topic as the gap
+            subject: subject || 'General',
+            source: source,
+            classId: classId,
+            detectedAt: new Date().toISOString(),
+            status: 'OPEN',
+            score: scorePercentage,
+            remedialCompleted: false
+          };
+
+          // Add fallback gap to student history
+          const { data: student } = await supabase.from('students').select('weaknessHistory').eq('id', studentId).single();
+          const currentHistory = student?.weaknessHistory || [];
+
+          // Avoid duplicates
+          const existingIndex = currentHistory.findIndex(existing =>
+            existing.status === 'OPEN' &&
+            existing.topic === fallbackGap.topic &&
+            existing.subTopic === fallbackGap.subTopic
+          );
+
+          if (existingIndex === -1) {
+            const finalHistory = [...currentHistory, fallbackGap];
+            await supabase.from('students').update({ weaknessHistory: finalHistory }).eq('id', studentId);
+            newGaps = [fallbackGap];
+          }
         }
       }
     }
