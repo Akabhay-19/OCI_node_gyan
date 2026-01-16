@@ -128,27 +128,37 @@ export const RemedialModal: React.FC<RemedialModalProps> = ({ gap, onClose, onRe
 
                         {step === 'QUIZ' && content && (
                             <div className="space-y-8 animate-in slide-in-from-right-8">
-                                {content.practiceQuestions.map((q, i) => (
-                                    <div key={i} className="space-y-3">
-                                        <p className="text-white font-medium">{i + 1}. {q.question}</p>
-                                        <div className="grid grid-cols-1 gap-2">
-                                            {q.options.map((opt, optIdx) => (
-                                                <button
-                                                    key={optIdx}
-                                                    onClick={() => {
-                                                        const newAns = [...userAnswers];
-                                                        newAns[i] = optIdx;
-                                                        setUserAnswers(newAns);
-                                                    }}
-                                                    className={`p-3 rounded text-left text-sm transition-all ${userAnswers[i] === optIdx ? 'bg-neon-purple text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
-                                                >
-                                                    {opt}
-                                                </button>
-                                            ))}
-                                        </div>
+                                {(!content.practiceQuestions || content.practiceQuestions.length === 0) ? (
+                                    <div className="text-center py-10">
+                                        <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                                        <p className="text-gray-400">Oops! We couldn't generate practice questions this time.</p>
+                                        <NeonButton onClick={() => setStep('LEARN')} className="mt-4" variant="secondary">Back to Lesson</NeonButton>
                                     </div>
-                                ))}
-                                <NeonButton onClick={handleSubmitQuiz} disabled={userAnswers.length < content.practiceQuestions.length} className="w-full" glow>Submit Answers</NeonButton>
+                                ) : (
+                                    <>
+                                        {content.practiceQuestions.map((q, i) => (
+                                            <div key={i} className="space-y-3">
+                                                <p className="text-white font-medium">{i + 1}. {q.question}</p>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    {q.options.map((opt, optIdx) => (
+                                                        <button
+                                                            key={optIdx}
+                                                            onClick={() => {
+                                                                const newAns = [...userAnswers];
+                                                                newAns[i] = optIdx;
+                                                                setUserAnswers(newAns);
+                                                            }}
+                                                            className={`p-3 rounded text-left text-sm transition-all ${userAnswers[i] === optIdx ? 'bg-neon-purple text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
+                                                        >
+                                                            {opt}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <NeonButton onClick={handleSubmitQuiz} disabled={userAnswers.length < content.practiceQuestions.length} className="w-full" glow>Submit Answers</NeonButton>
+                                    </>
+                                )}
                             </div>
                         )}
 

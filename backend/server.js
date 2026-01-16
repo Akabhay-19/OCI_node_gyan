@@ -1858,14 +1858,27 @@ app.post('/api/remedial/generate', async (req, res) => {
     Return JSON format:
     {
       "explanation": "Markdown text here...",
-      "questions": [
+      "practiceQuestions": [
         { "question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": 0 }
       ]
     }`;
 
     const aiResponse = await generate(prompt, { json: true });
-    const content = JSON.parse(cleanText(aiResponse.text));
+    let content = JSON.parse(cleanText(aiResponse.text));
 
+    // [ROBUSTNESS] Map any alternate field names to 'practiceQuestions'
+    if (!content.practiceQuestions && content.questions) {
+      console.log("[REMEDIAL] Mapping 'questions' to 'practiceQuestions'");
+      content.practiceQuestions = content.questions;
+      delete content.questions;
+    }
+
+    if (!content.practiceQuestions || !Array.isArray(content.practiceQuestions)) {
+      console.error("[REMEDIAL] AI failed to generate valid questions array:", content);
+      content.practiceQuestions = []; // Fallback
+    }
+
+    console.log(`[REMEDIAL] Generated ${content.practiceQuestions.length} questions for ${subTopic}`);
     res.json(content);
   } catch (err) {
     console.error("Remedial Gen Error:", err);
