@@ -2399,6 +2399,55 @@ app.get('/api/dev/students', async (req, res) => {
   }
 });
 
+// --- SITE CONTENT ENDPOINTS ---
+
+app.get('/api/site-content', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('site_content')
+      .select('content')
+      .eq('id', 'GLOBAL_CONFIG')
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows found"
+
+    if (data) {
+      res.json(data.content);
+    } else {
+      // Return default if not found
+      res.json({
+        teamMembers: [
+          {
+            id: '1',
+            name: "Abhay Kumar",
+            role: "Founder & Lead Developer",
+            bio: "Visionary behind Gyan AI, passionate about EdTech and AI.",
+            imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Abhay",
+            socials: { linkedin: "#", twitter: "#", github: "#" }
+          }
+        ]
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/site-content', async (req, res) => {
+  const content = req.body;
+  const updatedAt = new Date().toISOString();
+  try {
+    const { error } = await supabase
+      .from('site_content')
+      .upsert({ id: 'GLOBAL_CONFIG', content, updatedAt });
+
+    if (error) throw error;
+    res.json({ success: true, updated: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Individual: Get Teacher by ID
 app.get('/api/dev/teacher/:id', async (req, res) => {
   const { id } = req.params;

@@ -439,7 +439,14 @@ export const api = {
 
     // --- Dynamic Site Content ---
     getSiteContent: async (): Promise<SiteContent> => {
-        // Check localStorage first
+        try {
+            const res = await fetch(`${API_URL}/site-content`);
+            if (res.ok) return res.json();
+        } catch (e) {
+            console.error("Failed to fetch site content from backend", e);
+        }
+
+        // Fallback to localStorage if backend fails
         const localContent = localStorage.getItem('GYAN_SITE_CONTENT');
         if (localContent) return JSON.parse(localContent);
 
@@ -453,31 +460,26 @@ export const api = {
                     bio: "Visionary behind Gyan AI, passionate about EdTech and AI.",
                     imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Abhay",
                     socials: { linkedin: "#", twitter: "#", github: "#" }
-                },
-                {
-                    id: '2',
-                    name: "Sarah Chen",
-                    role: "Head of AI Research",
-                    bio: "Expert in NLP and adaptive learning algorithms.",
-                    imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-                    socials: { linkedin: "#", twitter: "#", github: "#" }
-                },
-                {
-                    id: '3',
-                    name: "Marcus Rodriguez",
-                    role: "Product Design",
-                    bio: "Creating intuitive and beautiful user experiences.",
-                    imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
-                    socials: { linkedin: "#", twitter: "#", github: "#" }
                 }
             ]
         };
     },
 
     updateSiteContent: async (content: SiteContent): Promise<void> => {
-        // In real app, POST to backend. Here, save to localStorage.
-        localStorage.setItem('GYAN_SITE_CONTENT', JSON.stringify(content));
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+            const res = await fetch(`${API_URL}/site-content`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(content)
+            });
+            if (!res.ok) throw new Error("Failed to save site content to backend");
+
+            // Still sync with localStorage for immediate local UI responsiveness if needed
+            localStorage.setItem('GYAN_SITE_CONTENT', JSON.stringify(content));
+        } catch (e) {
+            console.error("API Update Error:", e);
+            // Fallback to localStorage only
+            localStorage.setItem('GYAN_SITE_CONTENT', JSON.stringify(content));
+        }
     }
 };

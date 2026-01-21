@@ -147,6 +147,13 @@ db.serialize(() => {
     FOREIGN KEY(childId) REFERENCES students(id)
   )`);
 
+  // Site Content Table (Customization for Team, etc)
+  db.run(`CREATE TABLE IF NOT EXISTS site_content (
+    id TEXT PRIMARY KEY,
+    content TEXT, -- JSON string
+    updatedAt TEXT
+  )`);
+
   // Migration: Add 'questions' column to assignments table if missing
   db.run("ALTER TABLE assignments ADD COLUMN questions TEXT", (err) => {
     if (err && !err.message.includes("duplicate column name")) console.error("Migration Note:", err.message);
@@ -248,6 +255,43 @@ db.serialize(() => {
             console.log("No students found, skipping parent seed.");
           }
         });
+      }
+    });
+
+    // Independent check for site_content
+    db.get("SELECT count(*) as count FROM site_content", (err, scRow) => {
+      if (scRow && scRow.count === 0) {
+        console.log("Seeding initial site content...");
+        const initialContent = {
+          teamMembers: [
+            {
+              id: '1',
+              name: "Abhay Kumar",
+              role: "Founder & Lead Developer",
+              bio: "Visionary behind Gyan AI, passionate about EdTech and AI.",
+              imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Abhay",
+              socials: { linkedin: "#", twitter: "#", github: "#" }
+            },
+            {
+              id: '2',
+              name: "Sarah Chen",
+              role: "Head of AI Research",
+              bio: "Expert in NLP and adaptive learning algorithms.",
+              imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
+              socials: { linkedin: "#", twitter: "#", github: "#" }
+            },
+            {
+              id: '3',
+              name: "Marcus Rodriguez",
+              role: "Product Design",
+              bio: "Creating intuitive and beautiful user experiences.",
+              imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
+              socials: { linkedin: "#", twitter: "#", github: "#" }
+            }
+          ]
+        };
+        db.run("INSERT INTO site_content (id, content, updatedAt) VALUES (?, ?, ?)",
+          ['GLOBAL_CONFIG', JSON.stringify(initialContent), new Date().toISOString()]);
       }
     });
   });
