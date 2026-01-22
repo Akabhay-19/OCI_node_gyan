@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { UserRole, Teacher } from '../types';
 import { NeonCard, NeonButton, Input } from './UIComponents';
+import { ForgotPassword } from './ForgotPassword';
 import { GraduationCap, Users, ShieldCheck, Baby, ArrowLeft, LogIn, UserPlus, ChevronRight, User, Mail, BookOpen, Rocket, Building2, Upload, ScanLine, Phone, MapPin, Camera, Home } from 'lucide-react';
 
 interface RoleSelectionProps {
@@ -95,8 +96,19 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
             </>
           )}
         </NeonCard>
+
+        <button
+          onClick={() => setView('FORGOT_PASSWORD')}
+          className="mt-4 text-sm text-neon-cyan/80 hover:text-white underline decoration-dashed hover:decoration-solid transition-all"
+        >
+          Forgot Password?
+        </button>
       </div>
     );
+  }
+
+  if (view === 'FORGOT_PASSWORD') {
+    return <ForgotPassword onBack={() => { setView('LOGIN'); }} initialRole={loginRole || 'STUDENT'} />;
   }
 
   if (view === 'REGISTER_SCHOOL') {

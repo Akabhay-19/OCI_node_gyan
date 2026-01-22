@@ -175,6 +175,32 @@ export const api = {
         return data;
     },
 
+    forgotPassword: async (role: string, identifier: string): Promise<any> => {
+        const res = await fetch(`${API_URL}/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role, identifier }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Failed to send reset code');
+        }
+        return res.json();
+    },
+
+    resetPassword: async (role: string, identifier: string, code: string, newPassword: string): Promise<any> => {
+        const res = await fetch(`${API_URL}/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role, identifier, code, newPassword }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Failed to reset password');
+        }
+        return res.json();
+    },
+
     logout: () => {
         localStorage.removeItem('GYAN_USER_ID');
         localStorage.removeItem('GYAN_USER_ROLE');

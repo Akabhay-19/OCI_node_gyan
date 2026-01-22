@@ -2792,6 +2792,118 @@ app.post('/api/english/writing/evaluate', async (req, res) => {
 });
 
 
+// --- PASSWORD RESET ROUTES ---
+
+app.post('/api/forgot-password', async (req, res) => {
+  const { role, identifier } = req.body;
+
+  try {
+    // 1. Find User
+    let user = null;
+
+    if (role === 'STUDENT') {
+      const { data, error } = await supabase
+        .from('students')
+        .select('id, name')
+        .or(`username.eq.${identifier},mobileNumber.eq.${identifier},id.eq.${identifier}`)
+        .single();
+      if (!error) user = data;
+    } else if (role === 'TEACHER') {
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('id, name')
+        .or(`email.eq.${identifier},mobileNumber.eq.${identifier}`)
+        .single();
+      if (!error) user = data;
+    } else if (role === 'ADMIN') {
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id, name')
+        .eq('adminEmail', identifier)
+        .single();
+      if (!error) user = data;
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found with provided identifier" });
+    }
+
+    // 2. Generate Code
+    const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+    // 3. Save to password_resets
+    const { error: resetError } = await supabase
+      .from('password_resets')
+      .insert([{
+        identifier: identifier,
+        role: role,
+        code: code,
+        expires_at: expiresAt.toISOString(),
+        created_at: new Date().toISOString()
+      }]);
+
+    if (resetError) throw resetError;
+
+    // 4. "Send" Email
+    console.log(`[PASSWORD RESET] Code for ${role} ${identifier}: ${code}`);
+    res.json({ message: "Reset code sent", debug_code: code });
+
+  } catch (err) {
+    console.error("Forgot Password Error:", err);
+    res.status(500).json({ error: "Failed to process request" });
+  }
+});
+
+app.post('/api/reset-password', async (req, res) => {
+  const { role, identifier, code, newPassword } = req.body;
+
+  try {
+    // 1. Verify Code
+    const { data: resets, error } = await supabase
+      .from('password_resets')
+      .select('*')
+      .eq('identifier', identifier)
+      .eq('role', role)
+      .eq('code', code)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error || !resets || resets.length === 0) {
+      return res.status(400).json({ error: "Invalid or expired reset code" });
+    }
+
+    // 2. Update Password
+    if (role === 'STUDENT') {
+      const { data: user } = await supabase
+        .from('students')
+        .select('id')
+        .or(`username.eq.${identifier},mobileNumber.eq.${identifier},id.eq.${identifier}`)
+        .single();
+      if (user) await supabase.from('students').update({ password: newPassword }).eq('id', user.id);
+    } else if (role === 'TEACHER') {
+      const { data: user } = await supabase
+        .from('teachers')
+        .select('id')
+        .or(`email.eq.${identifier},mobileNumber.eq.${identifier}`)
+        .single();
+      if (user) await supabase.from('teachers').update({ password: newPassword }).eq('id', user.id);
+    } else if (role === 'ADMIN') {
+      await supabase.from('schools').update({ password: newPassword }).eq('adminEmail', identifier);
+    }
+
+    // 3. Delete used codes
+    await supabase.from('password_resets').delete().eq('identifier', identifier).eq('role', role);
+
+    res.json({ success: true, message: "Password updated successfully" });
+
+  } catch (err) {
+    console.error("Reset Password Error:", err);
+    res.status(500).json({ error: "Failed to reset password" });
+  }
+});
+
 // --- FRONTEND STATIC SERVING (Must be last) ---
 const distPath = path.join(__dirname, '../dist');
 console.log(`[Server] Environment: ${process.env.NODE_ENV}`);
