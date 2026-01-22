@@ -95,14 +95,14 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
               <NeonButton onClick={() => onLogin(loginRole || 'ADMIN', "Nebula Academy", { email: signupData.email, password: signupData.password })} className="w-full" glow>Authenticate</NeonButton>
             </>
           )}
-        </NeonCard>
 
-        <button
-          onClick={() => setView('FORGOT_PASSWORD')}
-          className="mt-4 text-sm text-neon-cyan/80 hover:text-white underline decoration-dashed hover:decoration-solid transition-all"
-        >
-          Forgot Password?
-        </button>
+          <button
+            onClick={() => setView('FORGOT_PASSWORD')}
+            className="mt-6 w-full text-center text-sm text-neon-cyan/80 hover:text-white underline decoration-dashed hover:decoration-solid transition-all"
+          >
+            Forgot Password?
+          </button>
+        </NeonCard>
       </div>
     );
   }

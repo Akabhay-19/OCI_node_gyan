@@ -595,69 +595,47 @@ const AppContent: React.FC = () => {
 
 
   const handleLogin = async (role: UserRole, schoolName: string, credentials?: any) => {
-    if ((role === 'STUDENT' || role === 'PARENT') && credentials) {
-      try {
-        // Authenticate using Student credentials
-        const student = await api.login({ ...credentials, role: 'STUDENT' }); // Authenticate as STUDENT
+    if (!credentials) return;
 
-        const studentSchool = schools.find(s => s.id === student.schoolId);
+    try {
+      // Authenticate using API for ALL roles
+      // For Parent, we pass role='PARENT' but asParent=true in api.login logic usually handles or we pass logic here.
+      // Actually RoleSelection passes { ..., asParent: true } for Parent.
+      // And api.login takes credentials.
+      // So we just pass credentials and role.
+      // Wait, RoleSelection passes role as first arg to onLogin.
+      // credentials object has username/password.
 
-        // Decide next route based on Role
-        let nextRoute = '/dashboard';
-        if (role === 'STUDENT') {
-          nextRoute = student.classId ? '/dashboard' : '/class-selection';
-        } else if (role === 'PARENT') {
-          nextRoute = '/dashboard'; // Parent typically goes straight to Dashboard (Class Selection handled inside)
-        }
+      const loginPayload = { ...credentials, role };
+      const user = await api.login(loginPayload);
 
-        setAppState(prev => ({
-          ...prev,
-          userRole: role, // FORCE the requested role (e.g. PARENT)
-          schoolName: studentSchool?.name || schoolName,
-          schoolId: student.schoolId,
-          schoolLogo: studentSchool?.logoUrl,
-          currentUser: student // Store the Student object as currentUser
-        }));
-        navigate(nextRoute);
-      } catch (e) {
-        alert("Invalid Username or Password");
-      }
-    } else {
-      // ... (Existing demo/mock login logic for other roles - keeping as is for now)
-      const demoSchool = schools[0];
-      let user: Student | Teacher | Parent | undefined;
-      if (role === 'TEACHER') {
-        if (credentials?.teacherId) {
-          user = demoSchool.faculty?.find(t => t.id === credentials.teacherId);
-        } else {
-          user = (demoSchool.faculty && demoSchool.faculty[0]) || { id: 'T-DEMO', schoolId: demoSchool.id, name: 'Demo Teacher', email: '', subject: 'Math', joinedAt: '', assignedClasses: [] };
-        }
-      }
-      if (role === 'PARENT') user = { id: 'P1', schoolId: demoSchool.id, name: 'Parent', email: '', childId: '1' };
+      const userSchoolId = user.schoolId || user.school?.id; // backend might return flattened or nested
+      const userSchool = schools.find(s => s.id === userSchoolId);
 
-      if (role === 'ADMIN') {
-        user = {
-          id: 'ADMIN-001',
-          schoolId: demoSchool.id,
-          name: 'School Administrator',
-          email: 'admin@school.com',
-          subject: 'Administration',
-          joinedAt: new Date().toISOString(),
-          assignedClasses: []
-        } as Teacher;
-      }
-
-      setAppState(prev => ({ ...prev, userRole: role, schoolName: demoSchool.name, schoolId: demoSchool.id, schoolLogo: demoSchool.logoUrl, currentUser: user }));
-      navigate('/dashboard');
-
-      // [FIX] Set default tab for Teachers
-      if (role === 'TEACHER') {
-        navigate('/dashboard/overview');
+      // Decide next route based on Role
+      let nextRoute = '/dashboard';
+      if (role === 'STUDENT') {
+        nextRoute = user.classId ? '/dashboard' : '/class-selection';
+      } else if (role === 'PARENT') {
+        nextRoute = '/dashboard';
+      } else if (role === 'TEACHER') {
+        nextRoute = '/dashboard/overview';
       } else if (role === 'ADMIN') {
-        navigate('/dashboard/overview');
-      } else {
-        navigate('/dashboard/learn'); // Default for Students
+        nextRoute = '/dashboard/overview';
       }
+
+      setAppState(prev => ({
+        ...prev,
+        userRole: role,
+        schoolName: userSchool?.name || schoolName || "Nebula Academy",
+        schoolId: userSchoolId,
+        schoolLogo: userSchool?.logoUrl,
+        currentUser: user
+      }));
+      navigate(nextRoute);
+    } catch (e: any) {
+      console.error("Login Failed:", e);
+      alert(e.message || "Invalid Credentials");
     }
   };
 
