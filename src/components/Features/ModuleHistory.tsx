@@ -57,8 +57,8 @@ export const ModuleHistory: React.FC<ModuleHistoryProps> = ({ studentId, onLoad,
     );
 
     return (
-        <div className="max-w-4xl mx-auto py-8 animate-fade-in-up">
-            <h2 className="text-3xl font-display font-bold mb-8 flex items-center gap-3">
+        <div className="max-w-4xl mx-auto pb-8 animate-fade-in-up">
+            <h2 className="text-3xl font-display font-bold mb-4 flex items-center gap-3">
                 <Clock className="text-neon-cyan" /> Generation History
             </h2>
 

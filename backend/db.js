@@ -154,6 +154,16 @@ db.serialize(() => {
     updatedAt TEXT
   )`);
 
+  // Contact Submissions Table [NEW]
+  db.run(`CREATE TABLE IF NOT EXISTS contact_submissions (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    email TEXT,
+    message TEXT,
+    submittedAt TEXT,
+    status TEXT -- 'UNREAD', 'READ'
+  )`);
+
   // Migration: Add 'questions' column to assignments table if missing
   db.run("ALTER TABLE assignments ADD COLUMN questions TEXT", (err) => {
     if (err && !err.message.includes("duplicate column name")) console.error("Migration Note:", err.message);
@@ -288,7 +298,12 @@ db.serialize(() => {
               imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
               socials: { linkedin: "#", twitter: "#", github: "#" }
             }
-          ]
+          ],
+          contactInfo: {
+            email: "support@gyan.ai",
+            phone: "+91 98765 43210",
+            address: "123 Innovation Drive, Tech Park, Bangalore, India"
+          }
         };
         db.run("INSERT INTO site_content (id, content, updatedAt) VALUES (?, ?, ?)",
           ['GLOBAL_CONFIG', JSON.stringify(initialContent), new Date().toISOString()]);

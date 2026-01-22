@@ -2448,6 +2448,40 @@ app.post('/api/site-content', async (req, res) => {
   }
 });
 
+// --- CONTACT FORM ENDPOINTS ---
+
+app.post('/api/contact/submit', async (req, res) => {
+  const { name, email, message } = req.body;
+  const id = `MSG-${Date.now()}`;
+  const submittedAt = new Date().toISOString();
+  const status = 'UNREAD';
+
+  try {
+    const { error } = await supabase
+      .from('contact_submissions')
+      .insert([{ id, name, email, message, submittedAt, status }]);
+
+    if (error) throw error;
+    res.json({ success: true, message: 'Message sent successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/contact/submissions', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('contact_submissions')
+      .select('*')
+      .order('submittedAt', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Individual: Get Teacher by ID
 app.get('/api/dev/teacher/:id', async (req, res) => {
   const { id } = req.params;

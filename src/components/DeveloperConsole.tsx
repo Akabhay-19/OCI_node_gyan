@@ -40,9 +40,13 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
     const [detailView, setDetailView] = useState<'FOLDERS' | 'TEACHERS' | 'STUDENTS' | 'PARENTS' | 'CLASSES'>('FOLDERS');
     const [schoolDetails, setSchoolDetails] = useState<{ teachers: any[], students: any[], parents: any[], classrooms: any[] }>({ teachers: [], students: [], parents: [], classrooms: [] });
     const [expandedClasses, setExpandedClasses] = useState<Set<string>>(new Set());
-    const [displayMode, setDisplayMode] = useState<'DATA' | 'CONTENT' | 'UPDATES' | 'API' | 'AI_CONFIG'>('DATA');
+    const [displayMode, setDisplayMode] = useState<'DATA' | 'CONTENT' | 'UPDATES' | 'API' | 'AI_CONFIG' | 'CONTACT' | 'INBOX'>('DATA');
     const [siteContent, setSiteContent] = useState<SiteContent>({ teamMembers: [] });
     const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+
+    // Contact & Inbox State
+    const [contactEdit, setContactEdit] = useState({ email: '', phone: '', address: '' });
+    const [submissions, setSubmissions] = useState<any[]>([]);
 
     // AI Configuration State
     const [aiConfig, setAiConfig] = useState<AIConfig>({ currentProvider: 'openrouter', currentModel: 'openai/gpt-4o-mini', availableProviders: [], geminiModel: 'gemini-2.0-flash-exp' });
@@ -75,8 +79,29 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
         try {
             const content = await api.getSiteContent();
             setSiteContent(content);
+            if (content.contactInfo) {
+                setContactEdit(content.contactInfo);
+            }
         } catch (e) {
             console.error("Failed to fetch site content", e);
+        }
+    };
+
+    const fetchSubmissions = async () => {
+        try {
+            const subs = await api.getContactSubmissions();
+            setSubmissions(subs);
+        } catch (e) { console.error(e); }
+    };
+
+    const handleSaveContactInfo = async () => {
+        if (!siteContent) return;
+        const updatedContent = { ...siteContent, contactInfo: contactEdit };
+        try {
+            await api.updateSiteContent(updatedContent);
+            alert("Contact Info Updated!");
+        } catch (e) {
+            alert("Failed to update contact info");
         }
     };
 
@@ -159,8 +184,9 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
 
     useEffect(() => {
         fetchData();
-        fetchContent();
-    }, []);
+        if (displayMode === 'CONTENT' || displayMode === 'CONTACT') fetchContent();
+        if (displayMode === 'INBOX') fetchSubmissions();
+    }, [displayMode]);
 
     const handleSaveContent = async () => {
         try {
@@ -278,6 +304,18 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
                         className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${displayMode === 'CONTENT' ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple/50' : 'text-gray-500 hover:text-white'}`}
                     >
                         <Monitor className="w-4 h-4" /> Site Content
+                    </button>
+                    <button
+                        onClick={() => { setDisplayMode('CONTACT'); fetchContent(); }}
+                        className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${displayMode === 'CONTACT' ? 'bg-pink-500/20 text-pink-500 border border-pink-500/50' : 'text-gray-500 hover:text-white'}`}
+                    >
+                        <Users className="w-4 h-4" /> Contact Info
+                    </button>
+                    <button
+                        onClick={() => { setDisplayMode('INBOX'); fetchSubmissions(); }}
+                        className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${displayMode === 'INBOX' ? 'bg-blue-500/20 text-blue-500 border border-blue-500/50' : 'text-gray-500 hover:text-white'}`}
+                    >
+                        <RefreshCw className="w-4 h-4" /> Inbox
                     </button>
                     <button
                         onClick={() => setDisplayMode('API')}
@@ -722,6 +760,85 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
                                 </div>
                             </div>
                         </NeonCard>
+                    </div>
+                ) : displayMode === 'CONTACT' ? (
+                    <div className="glass-panel p-6 border border-white/10 rounded-xl space-y-6">
+                        <h2 className="text-2xl font-bold mb-4">Edit Contact Information</h2>
+                        <div className="space-y-4 max-w-xl">
+                            <div>
+                                <label className="block text-gray-400 mb-1">Email</label>
+                                <input
+                                    type="text"
+                                    value={contactEdit.email}
+                                    onChange={e => setContactEdit({ ...contactEdit, email: e.target.value })}
+                                    className="w-full bg-black/50 border border-white/20 rounded p-2 text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-gray-400 mb-1">Phone</label>
+                                <input
+                                    type="text"
+                                    value={contactEdit.phone}
+                                    onChange={e => setContactEdit({ ...contactEdit, phone: e.target.value })}
+                                    className="w-full bg-black/50 border border-white/20 rounded p-2 text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-gray-400 mb-1">Address</label>
+                                <textarea
+                                    value={contactEdit.address}
+                                    onChange={e => setContactEdit({ ...contactEdit, address: e.target.value })}
+                                    className="w-full bg-black/50 border border-white/20 rounded p-2 text-white"
+                                    rows={3}
+                                />
+                            </div>
+                            <button
+                                onClick={handleSaveContactInfo}
+                                className="bg-neon-cyan text-black px-6 py-2 rounded-lg font-bold hover:bg-cyan-400 transition"
+                            >
+                                Save Contact Info
+                            </button>
+                        </div>
+                    </div>
+                ) : displayMode === 'INBOX' ? (
+                    <div className="space-y-6">
+                        <h2 className="text-2xl font-bold">Form Submissions</h2>
+                        <div className="glass-panel border border-white/10 rounded-xl overflow-hidden">
+                            <table className="w-full text-left">
+                                <thead className="bg-white/5 text-gray-400">
+                                    <tr>
+                                        <th className="p-4">Date</th>
+                                        <th className="p-4">Name</th>
+                                        <th className="p-4">Email</th>
+                                        <th className="p-4">Message</th>
+                                        <th className="p-4">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/10">
+                                    {submissions.length === 0 ? (
+                                        <tr><td colSpan={5} className="p-8 text-center text-gray-500">No submissions yet.</td></tr>
+                                    ) : (
+                                        submissions.map((sub: any) => (
+                                            <tr key={sub.id} className="hover:bg-white/5">
+                                                <td className="p-4 text-gray-400 text-sm">
+                                                    {new Date(sub.submittedAt).toLocaleDateString()}
+                                                </td>
+                                                <td className="p-4 font-medium">{sub.name}</td>
+                                                <td className="p-4 text-cyan-400">{sub.email}</td>
+                                                <td className="p-4 text-gray-300 max-w-md truncate" title={sub.message}>
+                                                    {sub.message}
+                                                </td>
+                                                <td className="p-4">
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${sub.status === 'UNREAD' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>
+                                                        {sub.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 ) : (
                     !selectedSchool ? (

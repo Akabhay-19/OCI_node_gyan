@@ -481,5 +481,32 @@ export const api = {
             // Fallback to localStorage only
             localStorage.setItem('GYAN_SITE_CONTENT', JSON.stringify(content));
         }
+    },
+
+    // --- Contact Form Services ---
+    submitContactForm: async (data: { name: string; email: string; message: string }) => {
+        try {
+            const res = await fetch(`${API_URL}/contact/submit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) throw new Error("Failed to submit message");
+            return await res.json();
+        } catch (e) {
+            console.error("Contact Submit Error:", e);
+            throw e;
+        }
+    },
+
+    getContactSubmissions: async (): Promise<any[]> => {
+        try {
+            const res = await fetch(`${API_URL}/contact/submissions`);
+            if (res.ok) return res.json();
+            return [];
+        } catch (e) {
+            console.error("Failed to fetch submissions", e);
+            return [];
+        }
     }
 };

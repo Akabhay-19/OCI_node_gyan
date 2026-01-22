@@ -317,4 +317,18 @@ export interface TeamMember {
 export interface SiteContent {
   teamMembers: TeamMember[];
   aboutUsText?: string; // Optional expansion
+  contactInfo?: {
+    email: string;
+    phone: string;
+    address: string;
+  };
+}
+
+export interface ContactSubmission {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  submittedAt: string;
+  status: 'UNREAD' | 'READ' | 'ARCHIVED';
 }

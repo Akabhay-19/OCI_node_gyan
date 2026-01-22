@@ -2,18 +2,35 @@ import React, { useState } from 'react';
 import { ArrowLeft, Mail, MapPin, Phone, Send } from 'lucide-react';
 import { LiquidBackground } from './LiquidBackground';
 
+import { api } from '../services/api';
+
 interface ContactProps {
     onBack: () => void;
 }
 
 export const Contact: React.FC<ContactProps> = ({ onBack }) => {
     const [formState, setFormState] = useState({ name: '', email: '', message: '' });
+    const [contactInfo, setContactInfo] = useState<{ email: string; phone: string; address: string } | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    React.useEffect(() => {
+        const loadInfo = async () => {
+            const content = await api.getSiteContent();
+            if (content.contactInfo) {
+                setContactInfo(content.contactInfo);
+            }
+        };
+        loadInfo();
+    }, []);
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        alert("Message sent! We will get back to you shortly.");
-        // Implement actual sending logic here
-        setFormState({ name: '', email: '', message: '' });
+        try {
+            await api.submitContactForm(formState);
+            alert("Message sent! We will get back to you shortly.");
+            setFormState({ name: '', email: '', message: '' });
+        } catch (error) {
+            alert("Failed to send message. Please try again.");
+        }
     };
 
     return (
@@ -42,21 +59,21 @@ export const Contact: React.FC<ContactProps> = ({ onBack }) => {
                                     <Mail className="text-neon-cyan mt-1" />
                                     <div>
                                         <p className="font-bold text-gray-300">Email Us</p>
-                                        <p className="text-gray-500">support@gyan.ai</p>
+                                        <p className="text-gray-500">{contactInfo?.email || "support@gyan.ai"}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-4">
                                     <Phone className="text-neon-purple mt-1" />
                                     <div>
                                         <p className="font-bold text-gray-300">Call Us</p>
-                                        <p className="text-gray-500">+91 98765 43210</p>
+                                        <p className="text-gray-500">{contactInfo?.phone || "+91 98765 43210"}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-4">
                                     <MapPin className="text-pink-500 mt-1" />
                                     <div>
                                         <p className="font-bold text-gray-300">Visit Us</p>
-                                        <p className="text-gray-500">123 Innovation Drive,<br />Tech Park, Bangalore, India</p>
+                                        <p className="text-gray-500 whitespace-pre-line">{contactInfo?.address || "123 Innovation Drive,\nTech Park, Bangalore, India"}</p>
                                     </div>
                                 </div>
                             </div>
