@@ -23,8 +23,8 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 
 // --- Configuration ---
 const AI_PROVIDER = 'openrouter';
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.REACT_APP_GEMINI_API_KEY;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.REACT_APP_GEMINI_API_KEY;
 
 // Model configurations
 const MODELS = {
@@ -180,17 +180,22 @@ async function generate(prompt, options = {}) {
         }
     } catch (error) {
         console.warn(`Primary AI (${preferredProvider}) failed: ${error.message}`);
+        const primaryError = error.message;
 
         // Fallback logic
-        if (preferredProvider === 'openrouter' && GEMINI_API_KEY) {
-            console.log('Falling back to Gemini...');
-            return await generateWithGemini(prompt, { ...options, model: MODELS.gemini.default });
-        } else if (preferredProvider === 'gemini' && OPENROUTER_API_KEY) {
-            console.log('Falling back to OpenRouter...');
-            return await generateWithOpenRouter(prompt, options);
+        try {
+            if (preferredProvider === 'openrouter' && GEMINI_API_KEY) {
+                console.log('Falling back to Gemini...');
+                return await generateWithGemini(prompt, { ...options, model: MODELS.gemini.default });
+            } else if (preferredProvider === 'gemini' && OPENROUTER_API_KEY) {
+                console.log('Falling back to OpenRouter...');
+                return await generateWithOpenRouter(prompt, options);
+            }
+        } catch (fallbackError) {
+            throw new Error(`Primary AI (${preferredProvider}) failed: ${primaryError}. Fallback also failed: ${fallbackError.message}`);
         }
 
-        throw error;
+        throw error; // If no fallback was attempted
     }
 }
 
