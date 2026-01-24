@@ -14,7 +14,7 @@ interface HomeProps {
 
 export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole, onNavigate }) => {
     return (
-        <div className="flex flex-col gap-20 pb-20 hover-glow-text relative overflow-x-hidden">
+        <div className="flex flex-col gap-10 md:gap-20 pb-10 md:pb-20 hover-glow-text relative overflow-x-hidden">
             {/* <LiquidBackground /> Disabled for performance optimization */}
 
             {/* Hero Section */}
@@ -40,7 +40,7 @@ export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole,
                         <span>POWERED BY GOOGLE GEMINI</span>
                     </div>
 
-                    <h1 className="text-6xl md:text-8xl font-display font-bold leading-tight animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                    <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-bold leading-tight animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                         Master Your <br />
                         <span className="bg-clip-text text-transparent bg-gradient-to-r from-neon-cyan via-white to-neon-purple drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]">
                             Potential
@@ -49,24 +49,24 @@ export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole,
 
                     {/* BeamCircle removed from inside container to move to edges */}
 
-                    <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                    <p className="text-lg md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                         Experience the next evolution of education. AI-powered tutoring, immersive gamification, and real-time analytics in one unified platform.
                     </p>
 
                     <div className="flex flex-col md:flex-row items-center justify-center gap-6 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
                         <button
                             onClick={onGetStarted}
-                            className="group relative px-8 py-4 bg-neon-cyan text-black font-bold text-lg rounded-xl overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(6,182,212,0.6)]"
+                            className="group relative w-full md:w-auto px-8 py-4 bg-neon-cyan text-black font-bold text-lg rounded-xl overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(6,182,212,0.6)]"
                         >
                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                            <span className="relative flex items-center gap-2">
+                            <span className="relative flex items-center justify-center gap-2">
                                 Get Started Free <ArrowRight className="w-5 h-5" />
                             </span>
                         </button>
 
                         <button
                             onClick={onLogin}
-                            className="px-8 py-4 glass-panel border border-white/10 hover:border-neon-purple/50 text-white font-bold text-lg rounded-xl transition-all hover:bg-white/5 hover:scale-105"
+                            className="w-full md:w-auto px-8 py-4 glass-panel border border-white/10 hover:border-neon-purple/50 text-white font-bold text-lg rounded-xl transition-all hover:bg-white/5 hover:scale-105"
                         >
                             Existing User Login
                         </button>
@@ -308,14 +308,14 @@ export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole,
                 <div className="glass-panel border border-neon-cyan/20 rounded-3xl p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-12">
                     <div className="absolute inset-0 bg-gradient-to-r from-neon-cyan/10 to-neon-purple/10"></div>
 
-                    <div className="relative z-10 text-left max-w-2xl">
-                        <h2 className="text-4xl font-display font-bold mb-6">Ready to Transform Your Future?</h2>
-                        <p className="text-xl text-gray-300 mb-8">
+                    <div className="relative z-10 text-center md:text-left max-w-2xl">
+                        <h2 className="text-3xl md:text-4xl font-display font-bold mb-4 md:mb-6">Ready to Transform Your Future?</h2>
+                        <p className="text-lg md:text-xl text-gray-300 mb-6 md:mb-8">
                             Join thousands of students and teachers who are already experiencing the power of Gyan.
                         </p>
                         <button
                             onClick={onGetStarted}
-                            className="px-10 py-4 bg-white text-black font-bold text-xl rounded-xl hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                            className="w-full md:w-auto px-10 py-4 bg-white text-black font-bold text-xl rounded-xl hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                         >
                             Join Now - It's Free
                         </button>

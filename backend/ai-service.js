@@ -29,7 +29,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.REACT_APP_GEMIN
 // Model configurations
 const MODELS = {
     openrouter: {
-        default: process.env.OPENROUTER_DEFAULT_MODEL || 'google/gemini-2.0-flash-exp:free',
+        default: process.env.OPENROUTER_DEFAULT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
         fast: 'openai/gpt-3.5-turbo',
         powerful: 'openai/gpt-4o',
         claude: 'anthropic/claude-3.5-sonnet',

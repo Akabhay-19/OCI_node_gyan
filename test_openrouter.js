@@ -1,13 +1,23 @@
 // Test script to verify OpenRouter API key and list available models
-const API_KEY = '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';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+const API_KEY = process.env.OPENROUTER_API_KEY;
 
 async function testOpenRouterKey() {
   console.log('🔑 Testing OpenRouter API Key...\n');
 
+
   try {
     // Test 1: Check API key validity with a simple completion
     console.log('📝 Test 1: Verifying API key with a test completion...');
-    
+
     const testResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -17,7 +27,7 @@ async function testOpenRouterKey() {
         'X-Title': 'GYAN AI Test'
       },
       body: JSON.stringify({
-        model: 'openai/gpt-3.5-turbo',
+        model: process.env.OPENROUTER_DEFAULT_MODEL || 'meta-llama/llama-3.1-70b-instruct:free',
         messages: [{ role: 'user', content: 'Say "Hello! API key is working!" in exactly those words.' }],
         max_tokens: 50
       })
@@ -26,7 +36,8 @@ async function testOpenRouterKey() {
     if (!testResponse.ok) {
       const error = await testResponse.json();
       console.log('❌ API Key Error:', error);
-      return;
+      // Continue to list models even if specific model failed
+      // return; 
     }
 
     const testResult = await testResponse.json();
@@ -37,7 +48,7 @@ async function testOpenRouterKey() {
 
     // Test 2: Get available models
     console.log('📋 Test 2: Fetching available models...\n');
-    
+
     const modelsResponse = await fetch('https://openrouter.ai/api/v1/models', {
       headers: {
         'Authorization': `Bearer ${API_KEY}`
@@ -46,19 +57,19 @@ async function testOpenRouterKey() {
 
     if (modelsResponse.ok) {
       const modelsData = await modelsResponse.json();
-      
+
       // Group models by provider
-      const popularModels = modelsData.data.filter(m => 
-        m.id.includes('gpt-4') || 
-        m.id.includes('gpt-3.5') || 
-        m.id.includes('claude') || 
+      const popularModels = modelsData.data.filter(m =>
+        m.id.includes('gpt-4') ||
+        m.id.includes('gpt-3.5') ||
+        m.id.includes('claude') ||
         m.id.includes('gemini') ||
         m.id.includes('llama')
       ).slice(0, 20);
 
       console.log('🌟 Popular Models Available:');
       console.log('─'.repeat(60));
-      
+
       popularModels.forEach(model => {
         const pricing = model.pricing;
         const promptCost = pricing?.prompt ? `$${(parseFloat(pricing.prompt) * 1000000).toFixed(2)}/1M tokens` : 'N/A';
@@ -72,7 +83,7 @@ async function testOpenRouterKey() {
 
     // Test 3: Check account limits
     console.log('\n💳 Test 3: Checking account status...');
-    
+
     const limitsResponse = await fetch('https://openrouter.ai/api/v1/auth/key', {
       headers: {
         'Authorization': `Bearer ${API_KEY}`

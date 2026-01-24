@@ -221,22 +221,22 @@ export const Layout: React.FC<LayoutProps> = ({ children, logoUrl, userRole, cur
         {/* Header - Conditionally rendered */}
         {!hideHeader && (
           <header className="p-6 flex justify-between items-center glass-panel sticky top-0 z-50 border-b border-white/5">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               <button
                 onClick={toggleMenu}
                 className="p-2 -ml-2 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
               >
-                <Menu className="w-6 h-6" />
+                <Menu className="w-5 h-5 md:w-6 md:h-6" />
               </button>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3">
                 {logoUrl ? (
-                  <div className="w-10 h-10 rounded-lg overflow-hidden border border-neon-cyan/50 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg overflow-hidden border border-neon-cyan/50 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
                     <img src={logoUrl} alt="School Logo" className="w-full h-full object-cover" />
                   </div>
                 ) : null}
                 <div>
-                  <img src={logoNew} alt="Gyan AI" className="h-20 w-auto object-contain logo-glow" />
+                  <img src={logoNew} alt="Gyan AI" className="h-10 md:h-16 lg:h-20 w-auto object-contain logo-glow" />
                 </div>
               </div>
             </div>
@@ -265,16 +265,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, logoUrl, userRole, cur
           </header>
         )}
 
-        <div className="flex-grow container mx-auto px-4 py-8 md:py-12">
+        <div className="flex-grow container mx-auto px-4 py-6 md:py-12">
           {children}
         </div>
 
-        <footer className="p-6 text-center text-gray-600 text-sm border-t border-white/5 glass-panel flex flex-col items-center justify-center gap-4 relative">
-          <div className="flex flex-col items-center">
-
-            <p>&copy; 2025 Gyan EdTech. <span className="text-gray-500 ml-2">Powered by <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 font-bold">Google Gemini</span></span></p>
+        <footer className="p-6 text-center text-gray-600 text-sm border-t border-white/5 glass-panel flex flex-col md:flex-row items-center justify-center md:justify-between gap-4 relative">
+          <div className="flex flex-col items-center md:items-start">
+            <p>&copy; 2025 Gyan EdTech. <span className="block md:inline md:ml-2">Powered by <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 font-bold">Google Gemini</span></span></p>
           </div>
-          <div className="absolute right-6 flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs md:relative md:right-0">
             {isAiOnline ? <Wifi className="w-3 h-3 text-green-500" /> : <WifiOff className="w-3 h-3 text-red-500" />}
             <span className={isAiOnline ? 'text-green-500' : 'text-red-500'}>
               {isAiOnline ? 'Connected to Gemini' : 'Check API Key Configuration'}
