@@ -11,6 +11,9 @@ import fs from 'fs';
 // Import unified AI service (OpenRouter default, Gemini fallback)
 import { generate, chat, getStatus as getAIStatus, Type } from './ai-service.js';
 
+// Import email verification service
+import { sendEmailOTP, verifyEmailOTP } from './email-service.js';
+
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
@@ -407,6 +410,58 @@ app.get('/api/ai/status', async (req, res) => {
     currentProvider,
     currentModel
   });
+});
+
+// --- EMAIL OTP VERIFICATION ---
+
+// Send OTP to email
+app.post('/api/auth/send-email-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    const result = await sendEmailOTP(email);
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    res.json({ success: true, message: 'OTP sent successfully' });
+  } catch (err) {
+    console.error('[Email OTP] Send error:', err);
+    res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+// Verify email OTP
+app.post('/api/auth/verify-email-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and OTP are required' });
+    }
+
+    const result = verifyEmailOTP(email, otp);
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    res.json({ success: true, message: 'Email verified successfully' });
+  } catch (err) {
+    console.error('[Email OTP] Verify error:', err);
+    res.status(500).json({ error: 'Failed to verify OTP' });
+  }
 });
 
 // Auth

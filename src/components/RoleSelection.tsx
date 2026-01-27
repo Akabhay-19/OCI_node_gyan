@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { UserRole, Teacher } from '../types';
 import { NeonCard, NeonButton, Input } from './UIComponents';
 import { ForgotPassword } from './ForgotPassword';
+import { VerificationModal } from './VerificationModal';
 import { GraduationCap, Users, ShieldCheck, Baby, ArrowLeft, LogIn, UserPlus, ChevronRight, User, Mail, BookOpen, Rocket, Building2, Upload, ScanLine, Phone, MapPin, Camera, Home } from 'lucide-react';
 
 interface RoleSelectionProps {
@@ -22,6 +23,12 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
   const [loginRole, setLoginRole] = useState<UserRole | null>('STUDENT');
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // Verification modal state
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [pendingSignupData, setPendingSignupData] = useState<any>(null);
+  const [pendingRole, setPendingRole] = useState<UserRole | null>(null);
+
 
   if (view === 'HOME') {
     return (
@@ -315,16 +322,43 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
               if (loginRole === 'STUDENT' && !signupData.className) return alert("Please select your grade");
               if (loginRole === 'STUDENT' && !signupData.rollNumber) return alert("Please enter your roll number");
               if (loginRole === 'STUDENT' && !signupData.password) return alert("Please create a password");
+              if (!signupData.mobileNumber) return alert("Please enter your mobile number");
 
-              onSignupDetails(signupData);
-              onSelectRole(loginRole);
+              // Store pending data and show verification modal
+              setPendingSignupData(signupData);
+              setPendingRole(loginRole);
+              setShowVerificationModal(true);
             }}
             className="w-full"
             glow
           >
-            Next: Enter School Code
+            Next: Verify & Enter School Code
           </NeonButton>
         </NeonCard>
+
+        {/* Verification Modal */}
+        <VerificationModal
+          isOpen={showVerificationModal}
+          onClose={() => setShowVerificationModal(false)}
+          email={loginRole === 'TEACHER' ? signupData.email : undefined}
+          phone={signupData.mobileNumber}
+          requireBoth={loginRole === 'TEACHER'}
+          onVerified={(type, identifier) => {
+            console.log(`[Verification] ${type} verified: ${identifier}`);
+            setShowVerificationModal(false);
+
+            // Proceed with signup after verification
+            if (pendingSignupData && pendingRole) {
+              const verifiedData = {
+                ...pendingSignupData,
+                emailVerified: type === 'email' || loginRole === 'STUDENT',
+                phoneVerified: type === 'phone' || loginRole === 'TEACHER'
+              };
+              onSignupDetails(verifiedData);
+              onSelectRole(pendingRole);
+            }
+          }}
+        />
       </div>
     );
   }
