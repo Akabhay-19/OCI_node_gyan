@@ -1,6 +1,6 @@
 {
     "$schema": "node_modules/wrangler/config-schema.json",
-    "name": "gyan-app",
+    "name": "gyanai",
     "compatibility_date": "2026-01-27",
     "assets": {
         "directory": "./dist"
