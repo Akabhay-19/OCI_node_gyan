@@ -17,8 +17,9 @@ interface RoleSelectionProps {
 }
 
 export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLogin, onSignupDetails, onRegisterSchool, onBackToHome, faculty = [], initialView = 'HOME', showLoginButton = true }) => {
-  const [view, setView] = useState<'HOME' | 'LOGIN' | 'SIGNUP_DETAILS' | 'REGISTER_SCHOOL'>(initialView);
+  const [view, setView] = useState<'HOME' | 'LOGIN' | 'SIGNUP_DETAILS' | 'REGISTER_SCHOOL' | 'FORGOT_PASSWORD'>(initialView as any);
   const [signupData, setSignupData] = useState({ name: '', email: '', mobileNumber: '', rollNumber: '', username: '', password: '', className: '', stream: '', inviteCode: '' });
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [schoolData, setSchoolData] = useState({ schoolName: '', adminName: '', adminEmail: '', password: '', mobileNumber: '', motto: '', address: '', city: '', state: '', pincode: '', logoUrl: '' });
   const [loginRole, setLoginRole] = useState<UserRole | null>('STUDENT');
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
@@ -28,6 +29,19 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [pendingSignupData, setPendingSignupData] = useState<any>(null);
   const [pendingRole, setPendingRole] = useState<UserRole | null>(null);
+
+  const handleVerifyEmail = () => {
+    if (!signupData.email) return alert("Please enter your email address first");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(signupData.email)) return alert("Please enter a valid email address");
+
+    setShowVerificationModal(true);
+  };
+
+  const handleVerificationComplete = (email: string) => {
+    setIsEmailVerified(true);
+    setShowVerificationModal(false);
+  };
 
 
   if (view === 'HOME') {
@@ -293,12 +307,35 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
         <NeonCard className="w-full max-w-md p-8 space-y-6" glowColor={loginRole === 'TEACHER' ? 'cyan' : 'purple'}>
           <h3 className="text-3xl font-bold text-white text-center">Join as {loginRole}</h3>
 
-          <Input placeholder="Full Name" value={signupData.name} onChange={e => setSignupData({ ...signupData, name: e.target.value })} />
-          <Input placeholder="Email Address (Optional)" type="email" value={signupData.email} onChange={e => setSignupData({ ...signupData, email: e.target.value })} />
+          <Input placeholder="Full Name" value={signupData.name} onChange={e => { setSignupData({ ...signupData, name: e.target.value }); }} />
+
+          <div className="relative">
+            <Input
+              placeholder="Email Address"
+              type="email"
+              value={signupData.email}
+              onChange={e => {
+                setSignupData({ ...signupData, email: e.target.value });
+                if (isEmailVerified) setIsEmailVerified(false);
+              }}
+              className={isEmailVerified ? "pr-24 border-green-500/50" : "pr-24"}
+            />
+            {isEmailVerified ? (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-green-400 text-xs font-bold">
+                <CheckCircle className="w-4 h-4" /> VERIFIED
+              </div>
+            ) : (
+              <button
+                onClick={handleVerifyEmail}
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neon-purple/20 hover:bg-neon-purple/40 border border-neon-purple/50 text-neon-purple text-xs font-bold rounded-md transition-all"
+              >
+                VERIFY
+              </button>
+            )}
+          </div>
 
           {loginRole === 'TEACHER' ? (
             <>
-              <Input placeholder="Email Address" value={signupData.email} onChange={e => setSignupData({ ...signupData, email: e.target.value })} />
               <Input placeholder="Mobile Number" value={signupData.mobileNumber} onChange={e => setSignupData({ ...signupData, mobileNumber: e.target.value })} />
               <Input placeholder="Subject Specialization" value={signupData.stream} onChange={e => setSignupData({ ...signupData, stream: e.target.value })} />
               <Input type="password" placeholder="Create Password" value={signupData.password} onChange={e => setSignupData({ ...signupData, password: e.target.value })} />
@@ -308,7 +345,7 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
               <Input placeholder="Mobile Number" value={signupData.mobileNumber} onChange={e => setSignupData({ ...signupData, mobileNumber: e.target.value })} />
               <Input placeholder="Roll Number" value={signupData.rollNumber} onChange={e => setSignupData({ ...signupData, rollNumber: e.target.value })} />
               <Input type="password" placeholder="Create Password" value={signupData.password} onChange={e => setSignupData({ ...signupData, password: e.target.value })} />
-              <select className="w-full bg-black/40 border border-white/10 rounded px-4 py-3 text-white" value={signupData.className} onChange={e => setSignupData({ ...signupData, className: e.target.value })}>
+              <select className="w-full bg-black/40 border border-white/10 rounded px-4 py-3 text-white focus:border-neon-purple focus:outline-none" value={signupData.className} onChange={e => setSignupData({ ...signupData, className: e.target.value })}>
                 <option value="">Select Grade...</option>
                 {[...Array(12)].map((_, i) => <option key={i} value={`Grade ${i + 1}`}>Grade {i + 1}</option>)}
               </select>
@@ -318,22 +355,28 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
           <NeonButton
             onClick={() => {
               if (!signupData.name) return alert("Please enter your name");
-              if (loginRole === 'TEACHER' && !signupData.email) return alert("Please enter your email");
+              if (!signupData.email) return alert("Please enter your email");
+              if (!isEmailVerified) return alert("Please verify your email address first");
               if (loginRole === 'TEACHER' && !signupData.password) return alert("Please create a password");
               if (loginRole === 'STUDENT' && !signupData.className) return alert("Please select your grade");
               if (loginRole === 'STUDENT' && !signupData.rollNumber) return alert("Please enter your roll number");
               if (loginRole === 'STUDENT' && !signupData.password) return alert("Please create a password");
               if (!signupData.mobileNumber) return alert("Please enter your mobile number");
 
-              // Store pending data and show verification modal
-              setPendingSignupData(signupData);
-              setPendingRole(loginRole);
-              setShowVerificationModal(true);
+              // Proceed with signup directly
+              const verifiedData = {
+                ...signupData,
+                emailVerified: true,
+                phoneVerified: true // Set to true as we're removing phone OTP
+              };
+              onSignupDetails(verifiedData);
+              onSelectRole(loginRole!);
             }}
             className="w-full"
             glow
+            disabled={!isEmailVerified}
           >
-            Next: Verify & Enter School Code
+            Create {loginRole} Account
           </NeonButton>
         </NeonCard>
 
@@ -341,24 +384,8 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
         <VerificationModal
           isOpen={showVerificationModal}
           onClose={() => setShowVerificationModal(false)}
-          email={loginRole === 'TEACHER' ? signupData.email : undefined}
-          phone={signupData.mobileNumber}
-          requireBoth={loginRole === 'TEACHER'}
-          onVerified={(type, identifier) => {
-            console.log(`[Verification] ${type} verified: ${identifier}`);
-            setShowVerificationModal(false);
-
-            // Proceed with signup after verification
-            if (pendingSignupData && pendingRole) {
-              const verifiedData = {
-                ...pendingSignupData,
-                emailVerified: type === 'email' || loginRole === 'STUDENT',
-                phoneVerified: type === 'phone' || loginRole === 'TEACHER'
-              };
-              onSignupDetails(verifiedData);
-              onSelectRole(pendingRole);
-            }
-          }}
+          email={signupData.email}
+          onVerified={handleVerificationComplete}
         />
       </div>
     );
