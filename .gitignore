@@ -7,7 +7,17 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Environment and Secrets
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+secrets.*
+credentials.*
 
 # Logs and History
 *.txt
