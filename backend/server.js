@@ -12,7 +12,7 @@ import fs from 'fs';
 import { generate, chat, getStatus as getAIStatus, Type } from './ai-service.js';
 
 // Import email verification service
-import { sendEmailOTP, verifyEmailOTP } from './email-service.js';
+import { sendEmailOTP, verifyEmailOTP, sendPasswordResetEmail } from './email-service.js';
 
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
@@ -1625,7 +1625,7 @@ app.get('/api/students', async (req, res) => {
 });
 
 app.post('/api/students', async (req, res) => {
-  const { id, schoolId, classId, name, mobileNumber, rollNumber, username, password, grade, attendance, avgScore, status, weakerSubjects, weaknessHistory } = req.body;
+  const { id, schoolId, classId, name, email, mobileNumber, rollNumber, username, password, grade, attendance, avgScore, status, weakerSubjects, weaknessHistory } = req.body;
 
   try {
     const { data, error } = await supabase
@@ -1635,6 +1635,7 @@ app.post('/api/students', async (req, res) => {
         schoolId,
         classId,
         name,
+        email,
         mobileNumber,
         rollNumber,
         username,
@@ -2853,30 +2854,41 @@ app.post('/api/forgot-password', async (req, res) => {
   const { role, identifier } = req.body;
 
   try {
-    // 1. Find User
+    // 1. Find User and get their email
     let user = null;
+    let userEmail = null;
 
     if (role === 'STUDENT') {
       const { data, error } = await supabase
         .from('students')
-        .select('id, name')
+        .select('id, name, email, mobileNumber, parentEmail')
         .or(`username.eq.${identifier},mobileNumber.eq.${identifier},id.eq.${identifier}`)
         .single();
-      if (!error) user = data;
+      if (!error) {
+        user = data;
+        // Priority: Student's own email > parentEmail > identifier if it looks like email
+        userEmail = data.email || data.parentEmail || (identifier.includes('@') ? identifier : null);
+      }
     } else if (role === 'TEACHER') {
       const { data, error } = await supabase
         .from('teachers')
-        .select('id, name')
+        .select('id, name, email, mobileNumber')
         .or(`email.eq.${identifier},mobileNumber.eq.${identifier}`)
         .single();
-      if (!error) user = data;
+      if (!error) {
+        user = data;
+        userEmail = data.email;
+      }
     } else if (role === 'ADMIN') {
       const { data, error } = await supabase
         .from('schools')
-        .select('id, name')
+        .select('id, name, adminEmail')
         .eq('adminEmail', identifier)
         .single();
-      if (!error) user = data;
+      if (!error) {
+        user = data;
+        userEmail = data.adminEmail;
+      }
     }
 
     if (!user) {
@@ -2900,9 +2912,30 @@ app.post('/api/forgot-password', async (req, res) => {
 
     if (resetError) throw resetError;
 
-    // 4. "Send" Email
+    // 4. Send Email with Reset Code
     console.log(`[PASSWORD RESET] Code for ${role} ${identifier}: ${code}`);
-    res.json({ message: "Reset code sent", debug_code: code });
+
+    if (userEmail) {
+      const emailResult = await sendPasswordResetEmail(userEmail, code, user.name || 'User');
+      if (!emailResult.success) {
+        console.warn(`[PASSWORD RESET] Email failed for ${userEmail}:`, emailResult.error);
+        // Still return success but note email issue
+        return res.json({
+          message: "Reset code generated. Email delivery may have failed.",
+          emailSent: false,
+          ...(process.env.NODE_ENV !== 'production' && { debug_code: code })
+        });
+      }
+      res.json({ message: "Reset code sent to your email", emailSent: true });
+    } else {
+      // No email available - return code in dev mode only
+      console.warn(`[PASSWORD RESET] No email found for ${role} ${identifier}`);
+      res.json({
+        message: "No email on file. Contact admin for password reset.",
+        emailSent: false,
+        ...(process.env.NODE_ENV !== 'production' && { debug_code: code })
+      });
+    }
 
   } catch (err) {
     console.error("Forgot Password Error:", err);

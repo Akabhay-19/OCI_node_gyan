@@ -294,6 +294,7 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
           <h3 className="text-3xl font-bold text-white text-center">Join as {loginRole}</h3>
 
           <Input placeholder="Full Name" value={signupData.name} onChange={e => setSignupData({ ...signupData, name: e.target.value })} />
+          <Input placeholder="Email Address (Optional)" type="email" value={signupData.email} onChange={e => setSignupData({ ...signupData, email: e.target.value })} />
 
           {loginRole === 'TEACHER' ? (
             <>

@@ -554,6 +554,42 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
                                             onChange={e => handleUpdateMember(member.id, { bio: e.target.value })}
                                             className="w-full bg-black/30 text-gray-400 text-sm p-2 rounded mb-4 resize-none focus:outline-none focus:ring-1 focus:ring-white/20 h-20"
                                         />
+
+                                        <div className="grid grid-cols-1 gap-2 mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center">
+                                                    <span className="text-xs font-bold text-blue-400">LI</span>
+                                                </div>
+                                                <input
+                                                    placeholder="LinkedIn URL"
+                                                    value={member.socials?.linkedin || ''}
+                                                    onChange={e => handleUpdateMember(member.id, { socials: { ...member.socials, linkedin: e.target.value } })}
+                                                    className="flex-1 bg-black/30 text-gray-400 text-xs p-2 rounded focus:outline-none border border-white/5 focus:border-white/20"
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded bg-cyan-500/10 flex items-center justify-center">
+                                                    <span className="text-xs font-bold text-cyan-400">TW</span>
+                                                </div>
+                                                <input
+                                                    placeholder="Twitter URL"
+                                                    value={member.socials?.twitter || ''}
+                                                    onChange={e => handleUpdateMember(member.id, { socials: { ...member.socials, twitter: e.target.value } })}
+                                                    className="flex-1 bg-black/30 text-gray-400 text-xs p-2 rounded focus:outline-none border border-white/5 focus:border-white/20"
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded bg-gray-500/10 flex items-center justify-center">
+                                                    <span className="text-xs font-bold text-gray-400">GH</span>
+                                                </div>
+                                                <input
+                                                    placeholder="GitHub URL"
+                                                    value={member.socials?.github || ''}
+                                                    onChange={e => handleUpdateMember(member.id, { socials: { ...member.socials, github: e.target.value } })}
+                                                    className="flex-1 bg-black/30 text-gray-400 text-xs p-2 rounded focus:outline-none border border-white/5 focus:border-white/20"
+                                                />
+                                            </div>
+                                        </div>
                                         <div className="space-y-4 mb-4">
                                             {/* Avatar Selection UI */}
                                             <div className="bg-black/30 p-3 rounded-lg border border-white/5 space-y-3">

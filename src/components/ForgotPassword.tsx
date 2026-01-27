@@ -31,16 +31,19 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, initialR
         try {
             const response = await api.forgotPassword(role, identifier);
 
-            // In dev mode, we might see the code in the response
-            if (response.debug_code) {
+            // Handle response based on email status
+            if (response.emailSent) {
+                setSuccess("Reset code sent to your email! Check your inbox.");
+            } else if (response.debug_code) {
+                // Dev mode - show code for testing
                 console.log("DEV DEBUG: Reset Code is", response.debug_code);
-                alert(`(DEV MODE) Reset Code Sent: ${response.debug_code}\n\nCheck console for details.`);
+                setSuccess(`DEV MODE: Reset code is ${response.debug_code}`);
             } else {
-                alert("Reset Code sent! (Check backend console in this demo)");
+                // No email on file
+                setSuccess(response.message || "Reset code generated. Check with admin if you don't receive it.");
             }
 
             setStep('RESET');
-            setSuccess("Reset code sent! verify it below.");
         } catch (err: any) {
             setError(err.message || "Failed to find user. Please check your details.");
         } finally {
