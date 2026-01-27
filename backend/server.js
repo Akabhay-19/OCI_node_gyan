@@ -1270,64 +1270,110 @@ Return a JSON object with this EXACT structure:
 app.post('/api/opportunities/find', async (req, res) => {
   try {
     const { interest = 'Academic', region = 'Global', gradeLevel, type } = req.body;
+    const today = new Date().toISOString().split('T')[0];
 
-    // In a real scenario, this would use a Search Tool or Browse Tool via the AI.
-    // Since we are using a text model, we will ask it to retrieve its knowledge of recurring/active events.
+    // 1. Try to fetch existing non-expired opportunities from DB
+    // Sorted by created_at DESC to show "Newly Launched" on top
+    const { data: existing, error: dbError } = await supabase
+      .from('opportunities')
+      .select('*')
+      .eq('grade_level', gradeLevel)
+      .eq('region', region)
+      .eq('interest', interest)
+      .eq('type', type)
+      .gte('deadline', today)
+      .order('created_at', { ascending: false });
+
+    if (!dbError && existing && existing.length >= 3) {
+      console.log(`[OPPORTUNITIES] Found ${existing.length} cached opportunities for ${gradeLevel}`);
+      return res.json({
+        opportunities: existing,
+        _meta: { source: 'database' }
+      });
+    }
+
+    // 2. Fallback to AI if no fresh results in DB
     const prompt = `List 5 active or upcoming ${type || 'competitions and scholarships'} for ${gradeLevel || 'High School'} students in 2025/2026 related to "${interest}".
         Focus on opportunities relevant to: ${region}.
 
         CRITICAL FILTERING RULES:
-        1. STRICTLY EXCLUDE opportunities that are NOT for ${gradeLevel}. If uncertain, exclude it.
-        2. If no opportunities are found specifically for ${gradeLevel}, return an empty array []. DO NOT hallucinate.
+        1. STRICTLY EXCLUDE opportunities that are NOT for ${gradeLevel}.
+        2. EXCLUDE opportunities that have already passed (Current date: ${today}).
+        3. If no opportunities are found specifically for ${gradeLevel}, return an empty array []. DO NOT hallucinate.
 
         Return a strictly valid JSON array of objects with this schema:
         {
-          "id": "string (unique)",
-        "title": "string",
-        "type": "SCHOLARSHIP" | "COMPETITION" | "OLYMPIAD",
-        "organization": "string",
-        "deadline": "YYYY-MM-DD (approximate if unknown)",
-        "reward": "string",
-        "description": "string (brief summary)",
-        "tags": ["string"],
-        "link": "string (Official URL. If unknown, leave empty string '')",
-        "searchQuery": "string (Google search query to find this opportunity, e.g. 'Apply for XYZ Scholarship 2026')"
-    }
-
+          "title": "string",
+          "type": "SCHOLARSHIP" | "COMPETITION" | "OLYMPIAD",
+          "organization": "string",
+          "deadline": "YYYY-MM-DD",
+          "reward": "string",
+          "description": "string (brief summary)",
+          "tags": ["string"],
+          "link": "string (Official URL. If unknown, leave empty string '')",
+          "searchQuery": "string (Google search query to find this opportunity)"
+        }
         Ensure the data looks realistic and high quality.`;
 
     const response = await generate(prompt, { json: true, model: currentModel });
-
-    let opportunities = [];
+    let aiOpportunities = [];
     try {
-      const cleaned = cleanText(response.text);
-      const parsed = JSON.parse(cleaned);
-      // Handle if AI wraps result in an object key like "opportunities" or just returns array
-      if (Array.isArray(parsed)) {
-        opportunities = parsed;
-      } else if (parsed && Array.isArray(parsed.opportunities)) {
-        opportunities = parsed.opportunities;
-      } else {
-        console.warn("AI returned unexpected structure for opportunities:", parsed);
-        opportunities = [];
-      }
+      const parsed = JSON.parse(cleanText(response.text));
+      aiOpportunities = Array.isArray(parsed) ? parsed : (parsed.opportunities || []);
     } catch (e) {
-      console.error("Failed to parse opportunities JSON. Raw:", response.text);
-      // Fallback to empty array instead of crashing
-      opportunities = [];
+      console.error("[OPPORTUNITIES] AI Parse Error:", e);
     }
 
-    // Post-process links
-    opportunities = opportunities.map(opp => ({
+    // 3. Save new AI results to DB & handle links
+    const toInsert = aiOpportunities.map(opp => ({
       ...opp,
-      // Use provided link if it looks real, otherwise construct a search link
+      grade_level: gradeLevel,
+      region: region,
+      interest: interest,
       link: (opp.link && opp.link.startsWith('http')) ? opp.link : `https://www.google.com/search?q=${encodeURIComponent(opp.searchQuery || opp.title + ' application')}`
     }));
 
+    if (toInsert.length > 0) {
+      const { error: insertError } = await supabase.from('opportunities').insert(toInsert);
+      if (insertError) console.error("[OPPORTUNITIES] DB Insert Error:", insertError.message);
+    }
+
+    // 4. Return combined fresh results (re-fetching from DB ensures correct sorting and IDs)
+    const { data: finalResults } = await supabase
+      .from('opportunities')
+      .select('*')
+      .eq('grade_level', gradeLevel)
+      .eq('region', region)
+      .eq('interest', interest)
+      .eq('type', type)
+      .gte('deadline', today)
+      .order('created_at', { ascending: false });
+
+    const formatted = (finalResults || toInsert).map(opp => ({
+      id: opp.id,
+      title: opp.title,
+      type: opp.type,
+      organization: opp.organization,
+      deadline: opp.deadline,
+      reward: opp.reward,
+      description: opp.description,
+      tags: opp.tags,
+      link: opp.link,
+      searchQuery: opp.search_query || opp.searchQuery,
+      gradeLevel: opp.grade_level || opp.gradeLevel,
+      region: opp.region || opp.region,
+      interest: opp.interest || opp.interest,
+      createdAt: opp.created_at || opp.createdAt
+    }));
+
     res.json({
-      opportunities,
-      _meta: { model: currentModel }
+      opportunities: formatted,
+      _meta: { model: currentModel, source: existing ? 'database' : 'ai+db' }
     });
+
+    // 5. Cleanup: Periodically delete expired opportunities (optional background task)
+    // For now, the .gte('deadline', today) handles visibility automatically.
+
   } catch (error) {
     console.error("Opportunity Finder Error:", error);
     res.status(500).json({ error: "Failed to find opportunities" });

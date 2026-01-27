@@ -332,3 +332,20 @@ export interface ContactSubmission {
   submittedAt: string;
   status: 'UNREAD' | 'READ' | 'ARCHIVED';
 }
+
+export interface Opportunity {
+  id: string;
+  title: string;
+  type: 'SCHOLARSHIP' | 'COMPETITION' | 'OLYMPIAD';
+  organization: string;
+  deadline: string; // ISO Date string
+  reward: string;
+  description: string;
+  tags: string[];
+  link: string;
+  searchQuery?: string;
+  gradeLevel?: string;
+  region?: string;
+  interest?: string;
+  createdAt?: string;
+}

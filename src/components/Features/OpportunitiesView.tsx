@@ -2,19 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NeonCard, NeonButton } from '../UIComponents';
 import { Trophy, Globe, Award, Calendar, ExternalLink, Filter, RotateCw, Sparkles, School } from 'lucide-react';
 import { api } from '../../services/api';
-import { Student } from '../../types';
-
-interface Opportunity {
-    id: string;
-    title: string;
-    type: 'SCHOLARSHIP' | 'COMPETITION' | 'OLYMPIAD';
-    organization: string;
-    deadline: string;
-    reward: string;
-    description: string;
-    tags: string[];
-    link: string;
-}
+import { Student, Opportunity } from '../../types';
 
 interface OpportunitiesViewProps {
     currentUser: Student;
@@ -25,6 +13,14 @@ export const OpportunitiesView: React.FC<OpportunitiesViewProps> = ({ currentUse
     const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
+
+    const isNew = (createdAt?: string) => {
+        if (!createdAt) return false;
+        const createdDate = new Date(createdAt);
+        const now = new Date();
+        const diffHours = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
+        return diffHours < 48; // Within last 48 hours
+    };
 
     const fetchOpportunities = async () => {
         if (!currentUser.grade) return;
@@ -107,7 +103,15 @@ export const OpportunitiesView: React.FC<OpportunitiesViewProps> = ({ currentUse
                                 className="p-0 overflow-hidden group hover:border-white/30 transition-all"
                                 glowColor={activeTab === 'SCHOLARSHIP' ? 'green' : 'purple'}
                             >
-                                <div className="p-4 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6">
+                                <div className="p-4 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6 relative overflow-hidden">
+                                    {isNew(op.createdAt) && (
+                                        <div className="absolute top-0 right-0">
+                                            <div className="bg-neon-cyan text-black text-[10px] font-black px-8 py-1 rotate-45 translate-x-3 translate-y-[-2px] shadow-lg flex items-center gap-1 justify-center">
+                                                <Sparkles className="w-2 h-2" /> NEW
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Icon Box */}
                                     <div className={`w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${op.type === 'SCHOLARSHIP' ? 'bg-gradient-to-br from-green-500/20 to-emerald-500/20 text-green-400 border border-green-500/30' :
                                         'bg-gradient-to-br from-purple-500/20 to-indigo-500/20 text-purple-400 border border-purple-500/30'
