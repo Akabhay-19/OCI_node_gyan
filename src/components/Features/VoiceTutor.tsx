@@ -61,9 +61,9 @@ export const VoiceTutor: React.FC<VoiceTutorProps> = ({ onClose, contextClass })
         console.log('[VoiceTutor] Starting connection...');
 
         try {
-            const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
+            const apiKey = (import.meta as any).env.VITE_GEMINI_AUDIO_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY;
             console.log('[VoiceTutor] API Key check:', apiKey ? 'API Key found' : 'API Key MISSING');
-            if (!apiKey) throw new Error("API Key missing. Please set VITE_GEMINI_API_KEY.");
+            if (!apiKey) throw new Error("API Key missing. Please set VITE_GEMINI_AUDIO_API_KEY or VITE_GEMINI_API_KEY.");
 
             // 1. Initialize Audio Contexts (Synchronous within user gesture)
             console.log('[VoiceTutor] Creating Audio Contexts...');
