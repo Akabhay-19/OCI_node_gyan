@@ -17,18 +17,22 @@ services:
         sync: false
 services:
   - type: web
-    name: gyan-backend
-    runtime: node
-    buildCommand: npm install --include=dev && npm run build
-    startCommand: npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: VITE_SUPABASE_URL
-        sync: false
-      - key: VITE_SUPABASE_ANON_KEY
-        sync: false
-      - key: VITE_GEMINI_API_KEY
-        sync: false
+    name: gyan-flutter-web
+    env: static
+    buildCommand: |
+      cd Android_gyan_production
+      flutter build web --release
+    staticPublishPath: Android_gyan_production/build/web
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), geolocation=(), payment=()"
