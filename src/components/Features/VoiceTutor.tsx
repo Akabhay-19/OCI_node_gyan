@@ -194,10 +194,7 @@ export const VoiceTutor: React.FC<VoiceTutorProps> = ({ onClose, contextClass })
                     },
                     onmessage: async (msg: LiveServerMessage) => {
                         // Debug incoming message
-                        if (msg.serverContent) {
-                            if (msg.serverContent.modelTurn) console.log("[VoiceTutor] RX: Turn received", msg.serverContent.modelTurn);
-                            if (msg.serverContent.turnComplete) console.log("[VoiceTutor] RX: Turn Complete");
-                        }
+                        if (msg.serverContent?.modelTurn) console.log("[VoiceTutor] RX: Turn received", msg.serverContent.modelTurn);
 
                         // 1. Handle Audio
                         const base64Audio = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
@@ -256,15 +253,18 @@ export const VoiceTutor: React.FC<VoiceTutorProps> = ({ onClose, contextClass })
             console.log('[VoiceTutor] ✅ Session established!');
 
             // Send initial greeting to kickstart the conversation
+            // Note: Sending text might crash Audio-Only models. Removed for stability.
+            /*
             if (typeof (session as any).sendRealtimeInput === 'function') {
                 setTimeout(() => {
                     console.log('[VoiceTutor] Sending initial greeting...');
                     (session as any).sendRealtimeInput([{
-                        mimeType: "text/plain",
-                        data: "Hello! Please introduce yourself briefly to the student."
+                         mimeType: "text/plain",
+                         data: "Hello! Please introduce yourself briefly to the student."
                     }]);
                 }, 1000); // 1s delay to ensure connection is stable
             }
+            */
 
         } catch (err: any) {
             console.error("[VoiceTutor] ❌ Connection Failed:", err);
