@@ -688,7 +688,7 @@ app.post('/api/quiz', async (req, res) => {
     });
   } catch (error) {
     console.error("Quiz Error:", error);
-    res.status(500).json({ error: "Failed to generate quiz" });
+    res.status(500).json({ error: "Failed to generate quiz", details: error.message });
   }
 });
 
