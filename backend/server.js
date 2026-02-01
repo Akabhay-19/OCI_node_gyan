@@ -16,6 +16,10 @@ import { generate, chat, getStatus as getAIStatus, Type } from './ai-service.js'
 // Import email verification service
 import { sendEmailOTP, verifyEmailOTP, sendPasswordResetEmail } from './email-service.js';
 
+// Import route modules
+import { createAuthRoutes } from './routes/auth.routes.js';
+import { createAIRoutes } from './routes/ai.routes.js';
+
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
@@ -145,6 +149,21 @@ const PORT = process.env.PORT || 5000;
 // --- AI CONFIGURATION ---
 // AI service is now handled by ai-service.js
 // Supports OpenRouter (default) and Gemini (fallback)
+
+// Shared config state (for AI routes)
+const configState = {
+  currentProvider: process.env.AI_PROVIDER || 'openrouter',
+  currentModel: process.env.OPENROUTER_DEFAULT_MODEL || 'google/gemini-2.0-flash-exp:free',
+  currentAudioModel: 'gemini-2.0-flash-exp'
+};
+
+// Mount modular routes
+const aiRoutes = createAIRoutes({ generate, chat, getStatus: getAIStatus }, configState);
+const authRoutes = createAuthRoutes(supabase, { sendEmailOTP, verifyEmailOTP, sendPasswordResetEmail });
+
+app.use('/api/ai', aiRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api', authRoutes); // Mount /api/login at root level too
 
 // Multer Config for File Uploads
 const upload = multer({ dest: 'uploads/' });
