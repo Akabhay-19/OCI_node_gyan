@@ -1,11 +1,11 @@
 
-const WebSocket = require('ws');
+import WebSocket from 'ws';
 
 /**
  * Handles WebSocket upgrades for the Gemini Live Proxy.
  * Route: /gemini-stream
  */
-function handleGeminiStream(wss, req) {
+export function handleGeminiStream(wss, req) {
     const apiKey = process.env.GEMINI_AUDIO_API_KEY || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -87,5 +87,3 @@ function handleGeminiStream(wss, req) {
         });
     });
 }
-
-module.exports = { handleGeminiStream };
