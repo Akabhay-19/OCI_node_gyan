@@ -12,7 +12,8 @@ import { generateToken, verifyToken, requireRole } from './middleware/auth.js';
 
 // Import unified AI service (OpenRouter default, Gemini fallback)
 import { generate, chat, getStatus as getAIStatus, Type } from './ai-service.js';
-
+import { WebSocketServer } from 'ws';
+const { handleGeminiStream } = require('./sockets/GeminiSocket.js');
 // Import email verification service
 import { sendEmailOTP, verifyEmailOTP, sendPasswordResetEmail } from './email-service.js';
 
@@ -20,7 +21,6 @@ import { sendEmailOTP, verifyEmailOTP, sendPasswordResetEmail } from './email-se
 import { createAuthRoutes } from './routes/auth.routes.js';
 import { createAIRoutes } from './routes/ai.routes.js';
 
-const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 
@@ -2708,11 +2708,22 @@ app.get('/api/dev/student/:id', async (req, res) => {
 });
 
 const server = app.listen(PORT, () => {
-
   console.log(`Backend server running on port ${PORT}`);
   console.log(`Frontend command: npm start`);
   // Run sync after a short delay to ensure DB is ready
   setTimeout(syncClassroomData, 2000);
+});
+
+// [NEW] WebSocket Upgrade Handling
+const wss = new WebSocketServer({ noServer: true });
+
+server.on('upgrade', (request, socket, head) => {
+  // console.log("Upgrade Request:", request.url);
+  if (request.url === '/gemini-stream') {
+    handleGeminiStream(wss, request, socket, head);
+  } else {
+    socket.destroy();
+  }
 });
 
 // --- SYNC FUNCTION ---
