@@ -11,7 +11,7 @@ export const createAIRoutes = (aiService, supabase) => {
     const defaults = {
         provider: process.env.AI_PROVIDER || 'openrouter',
         model: process.env.OPENROUTER_DEFAULT_MODEL || 'google/gemini-2.0-flash-exp:free',
-        audioModel: 'gemini-2.0-flash-exp'
+        audioModel: 'gemini-2.5-flash-native-audio-latest'
     };
 
     // In-memory cache for config (60-second TTL)
@@ -94,7 +94,7 @@ export const createAIRoutes = (aiService, supabase) => {
             currentModel: config.model,
             currentAudioModel: config.audioModel,
             availableProviders: ['openrouter', 'gemini'],
-            geminiModel: 'gemini-2.0-flash-exp'
+            geminiModel: 'gemini-2.5-flash-native-audio-latest'
         });
     });
 
