@@ -14,8 +14,18 @@ export const createAIRoutes = (aiService, supabase) => {
         audioModel: 'gemini-2.0-flash-exp'
     };
 
-    // Helper: Get config from database
+    // In-memory cache for config (60-second TTL)
+    let configCache = null;
+    let cacheExpiry = 0;
+    const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+    // Helper: Get config from cache or database
     const getConfig = async () => {
+        // Return cached value if still valid
+        if (configCache && Date.now() < cacheExpiry) {
+            return configCache;
+        }
+
         try {
             const { data, error } = await supabase
                 .from('app_config')
@@ -34,15 +44,28 @@ export const createAIRoutes = (aiService, supabase) => {
                 if (row.key === 'ai_audio_model') config.audioModel = row.value;
             });
 
-            return {
+            const result = {
                 provider: config.provider || defaults.provider,
                 model: config.model || defaults.model,
                 audioModel: config.audioModel || defaults.audioModel
             };
+
+            // Update cache
+            configCache = result;
+            cacheExpiry = Date.now() + CACHE_TTL_MS;
+            console.log('[AI Config] Cache refreshed');
+
+            return result;
         } catch (err) {
             console.error('[AI Config] DB error:', err);
-            return defaults;
+            return configCache || defaults; // Return stale cache if DB fails
         }
+    };
+
+    // Helper: Invalidate cache (call after config updates)
+    const invalidateCache = () => {
+        configCache = null;
+        cacheExpiry = 0;
     };
 
     // Helper: Set config in database
@@ -96,6 +119,7 @@ export const createAIRoutes = (aiService, supabase) => {
         }
 
         await Promise.all(updates);
+        invalidateCache(); // Invalidate cache to force fresh read
         const config = await getConfig();
 
         res.json({
