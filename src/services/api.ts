@@ -534,10 +534,7 @@ export const api = {
             console.error("Failed to fetch submissions", e);
             return [];
         }
-        console.error("Failed to fetch submissions", e);
-        return [];
-    }
-},
+    },
 
     // --- Dev Console Auth ---
     devLogin: async (credentials: { email: string, password: string }): Promise<boolean> => {
