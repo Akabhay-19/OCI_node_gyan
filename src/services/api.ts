@@ -545,6 +545,42 @@ export const api = {
         });
         if (!res.ok) throw new Error("Invalid Developer Credentials");
         const data = await res.json();
+        if (data.token) {
+            sessionStorage.setItem('devToken', data.token);
+        }
         return data.success;
+    },
+
+    // --- Token Helpers ---
+    getDevToken: (): string | null => {
+        return sessionStorage.getItem('devToken');
+    },
+
+    clearDevToken: (): void => {
+        sessionStorage.removeItem('devToken');
+    },
+
+    // --- Authenticated Fetch Helper ---
+    authFetch: async (url: string, options: RequestInit = {}): Promise<Response> => {
+        const token = sessionStorage.getItem('devToken');
+        const headers = {
+            ...options.headers,
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        };
+        return fetch(url, { ...options, headers });
+    },
+
+    // --- AI Config (Protected) ---
+    setAIConfig: async (config: { provider?: string, model?: string, audioModel?: string }): Promise<any> => {
+        const res = await api.authFetch(`${API_URL}/ai/config`, {
+            method: 'POST',
+            body: JSON.stringify(config)
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Failed to set AI config');
+        }
+        return res.json();
     }
 };

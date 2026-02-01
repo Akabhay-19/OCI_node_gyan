@@ -8,6 +8,7 @@ import multer from 'multer';
 import { createRequire } from 'module';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
+import { generateToken, verifyToken, requireRole } from './middleware/auth.js';
 
 // Import unified AI service (OpenRouter default, Gemini fallback)
 import { generate, chat, getStatus as getAIStatus, Type } from './ai-service.js';
@@ -316,8 +317,8 @@ app.get('/api/ai/config', async (req, res) => {
   });
 });
 
-// Set AI configuration (provider + model)
-app.post('/api/ai/config', async (req, res) => {
+// Set AI configuration (provider + model) - Protected Route
+app.post('/api/ai/config', verifyToken, requireRole('DEVELOPER'), async (req, res) => {
   const { provider, model, audioModel } = req.body;
 
   if (provider && ['openrouter', 'gemini'].includes(provider)) {
@@ -484,7 +485,13 @@ app.post('/api/auth/dev-login', async (req, res) => {
     const isValid = await bcrypt.compare(password, user.password_hash);
 
     if (isValid) {
-      res.json({ success: true });
+      // Generate JWT token
+      const token = generateToken({
+        id: user.id,
+        email: user.email,
+        role: user.role
+      });
+      res.json({ success: true, token });
     } else {
       res.status(401).json({ error: 'Invalid Developer Credentials' });
     }
