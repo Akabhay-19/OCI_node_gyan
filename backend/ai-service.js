@@ -36,8 +36,8 @@ const MODELS = {
         gemini: 'google/gemini-2.5-flash'
     },
     gemini: {
-        default: 'gemini-1.5-flash',
-        powerful: 'gemini-1.5-pro'
+        default: 'gemini-2.0-flash-exp',
+        powerful: 'gemini-2.0-pro-exp-02-05'
     }
 };
 
