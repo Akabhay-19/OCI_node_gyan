@@ -165,6 +165,25 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', authRoutes); // Mount /api/login at root level too
 
+// Helper: Get current AI model from database (with fallback)
+const getCurrentModel = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('app_config')
+      .select('value')
+      .eq('key', 'ai_model')
+      .single();
+
+    if (error || !data) {
+      return process.env.OPENROUTER_DEFAULT_MODEL || 'google/gemini-2.0-flash-exp:free';
+    }
+    return data.value;
+  } catch (err) {
+    console.error('[AI Config] Error getting model:', err);
+    return process.env.OPENROUTER_DEFAULT_MODEL || 'google/gemini-2.0-flash-exp:free';
+  }
+};
+
 // Multer Config for File Uploads
 const upload = multer({ dest: 'uploads/' });
 
@@ -719,7 +738,8 @@ IMPORTANT:
 3. Escape all newlines in strings as \\\\n.
 4. Do NOT output trailing commas.`;
 
-    const response = await generate(prompt, { json: true, model: currentModel, maxTokens: 8192 });
+    const modelToUse = await getCurrentModel();
+    const response = await generate(prompt, { json: true, model: modelToUse, maxTokens: 8192 });
     const data = JSON.parse(cleanText(response.text));
 
     // Post-process to add valid URLs for videos
