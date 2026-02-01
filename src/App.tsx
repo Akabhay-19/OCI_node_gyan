@@ -916,10 +916,11 @@ const DevLogin: React.FC<{ onLogin: (success: boolean) => void }> = ({ onLogin }
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogin = () => {
-    if (email === 'akabhay.official@gmail.com' && password === '1234567890a@A') {
+  const handleLogin = async () => {
+    try {
+      await api.devLogin({ email, password });
       onLogin(true);
-    } else {
+    } catch (e) {
       setError('Invalid Credentials');
     }
   };

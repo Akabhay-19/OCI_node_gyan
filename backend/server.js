@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import multer from 'multer';
 import { createRequire } from 'module';
 import fs from 'fs';
+import bcrypt from 'bcryptjs';
 
 // Import unified AI service (OpenRouter default, Gemini fallback)
 import { generate, chat, getStatus as getAIStatus, Type } from './ai-service.js';
@@ -461,6 +462,35 @@ app.post('/api/auth/verify-email-otp', async (req, res) => {
   } catch (err) {
     console.error('[Email OTP] Verify error:', err);
     res.status(500).json({ error: 'Failed to verify OTP' });
+  }
+});
+
+// Developer Console Login
+app.post('/api/auth/dev-login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const { data: user, error } = await supabase
+      .from('system_users')
+      .select('*')
+      .eq('email', email)
+      .eq('role', 'DEVELOPER')
+      .single();
+
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid Developer Credentials' });
+    }
+
+    const isValid = await bcrypt.compare(password, user.password_hash);
+
+    if (isValid) {
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ error: 'Invalid Developer Credentials' });
+    }
+  } catch (err) {
+    console.error('Dev Auth Error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 

@@ -534,5 +534,20 @@ export const api = {
             console.error("Failed to fetch submissions", e);
             return [];
         }
+        console.error("Failed to fetch submissions", e);
+        return [];
+    }
+},
+
+    // --- Dev Console Auth ---
+    devLogin: async (credentials: { email: string, password: string }): Promise<boolean> => {
+        const res = await fetch(`${API_URL}/auth/dev-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(credentials)
+        });
+        if (!res.ok) throw new Error("Invalid Developer Credentials");
+        const data = await res.json();
+        return data.success;
     }
 };
