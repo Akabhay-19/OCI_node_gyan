@@ -158,7 +158,7 @@ const configState = {
 };
 
 // Mount modular routes
-const aiRoutes = createAIRoutes({ generate, chat, getStatus: getAIStatus }, configState);
+const aiRoutes = createAIRoutes({ generate, chat, getStatus: getAIStatus }, supabase);
 const authRoutes = createAuthRoutes(supabase, { sendEmailOTP, verifyEmailOTP, sendPasswordResetEmail });
 
 app.use('/api/ai', aiRoutes);

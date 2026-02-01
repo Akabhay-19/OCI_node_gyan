@@ -4,15 +4,72 @@ import { verifyToken, requireRole } from '../middleware/auth.js';
 const router = express.Router();
 
 // Factory function to create AI routes with dependencies
-export const createAIRoutes = (aiService, configState) => {
+export const createAIRoutes = (aiService, supabase) => {
     const { generate, chat, getStatus } = aiService;
+
+    // Default values (used if DB fetch fails)
+    const defaults = {
+        provider: process.env.AI_PROVIDER || 'openrouter',
+        model: process.env.OPENROUTER_DEFAULT_MODEL || 'google/gemini-2.0-flash-exp:free',
+        audioModel: 'gemini-2.0-flash-exp'
+    };
+
+    // Helper: Get config from database
+    const getConfig = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('app_config')
+                .select('key, value')
+                .in('key', ['ai_provider', 'ai_model', 'ai_audio_model']);
+
+            if (error || !data || data.length === 0) {
+                console.log('[AI Config] Using defaults (no DB config found)');
+                return defaults;
+            }
+
+            const config = {};
+            data.forEach(row => {
+                if (row.key === 'ai_provider') config.provider = row.value;
+                if (row.key === 'ai_model') config.model = row.value;
+                if (row.key === 'ai_audio_model') config.audioModel = row.value;
+            });
+
+            return {
+                provider: config.provider || defaults.provider,
+                model: config.model || defaults.model,
+                audioModel: config.audioModel || defaults.audioModel
+            };
+        } catch (err) {
+            console.error('[AI Config] DB error:', err);
+            return defaults;
+        }
+    };
+
+    // Helper: Set config in database
+    const setConfig = async (key, value) => {
+        try {
+            const { error } = await supabase
+                .from('app_config')
+                .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+
+            if (error) {
+                console.error(`[AI Config] Failed to set ${key}:`, error);
+                return false;
+            }
+            return true;
+        } catch (err) {
+            console.error(`[AI Config] DB error setting ${key}:`, err);
+            return false;
+        }
+    };
 
     // Get current AI configuration
     router.get('/config', async (req, res) => {
+        const config = await getConfig();
         res.json({
-            currentProvider: configState.currentProvider,
-            currentModel: configState.currentModel,
-            currentAudioModel: configState.currentAudioModel,
+            currentProvider: config.provider,
+            currentModel: config.model,
+            currentAudioModel: config.audioModel,
             availableProviders: ['openrouter', 'gemini'],
             geminiModel: 'gemini-2.0-flash-exp'
         });
@@ -21,27 +78,31 @@ export const createAIRoutes = (aiService, configState) => {
     // Set AI configuration (provider + model) - Protected Route
     router.post('/config', verifyToken, requireRole('DEVELOPER'), async (req, res) => {
         const { provider, model, audioModel } = req.body;
+        const updates = [];
 
         if (provider && ['openrouter', 'gemini'].includes(provider)) {
-            configState.currentProvider = provider;
+            updates.push(setConfig('ai_provider', provider));
             console.log(`[AI Config] Provider changed to: ${provider}`);
         }
 
         if (model) {
-            configState.currentModel = model;
+            updates.push(setConfig('ai_model', model));
             console.log(`[AI Config] Model changed to: ${model}`);
         }
 
         if (audioModel) {
-            configState.currentAudioModel = audioModel;
+            updates.push(setConfig('ai_audio_model', audioModel));
             console.log(`[AI Config] Audio Model changed to: ${audioModel}`);
         }
 
+        await Promise.all(updates);
+        const config = await getConfig();
+
         res.json({
             success: true,
-            currentProvider: configState.currentProvider,
-            currentModel: configState.currentModel,
-            currentAudioModel: configState.currentAudioModel
+            currentProvider: config.provider,
+            currentModel: config.model,
+            currentAudioModel: config.audioModel
         });
     });
 
@@ -89,13 +150,14 @@ export const createAIRoutes = (aiService, configState) => {
 
     // Legacy endpoints for backwards compatibility
     router.get('/models', async (req, res) => {
-        const models = configState.currentProvider === 'gemini'
+        const config = await getConfig();
+        const models = config.provider === 'gemini'
             ? [{ id: 'gemini-2.0-flash-exp', name: 'Gemini 2.5 (Flash)', provider: 'Google', free: true }]
-            : [{ id: configState.currentModel, name: configState.currentModel, provider: 'OpenRouter', free: true }];
+            : [{ id: config.model, name: config.model, provider: 'OpenRouter', free: true }];
 
         res.json({
-            currentModel: configState.currentModel,
-            currentProvider: configState.currentProvider,
+            currentModel: config.model,
+            currentProvider: config.provider,
             availableModels: models,
             totalModels: models.length
         });
@@ -103,15 +165,19 @@ export const createAIRoutes = (aiService, configState) => {
 
     router.post('/models', async (req, res) => {
         const { model } = req.body;
-        if (model) configState.currentModel = model;
-        res.json({ success: true, currentModel: configState.currentModel });
+        if (model) {
+            await setConfig('ai_model', model);
+        }
+        const config = await getConfig();
+        res.json({ success: true, currentModel: config.model });
     });
 
     router.get('/status', async (req, res) => {
+        const config = await getConfig();
         res.json({
             ...getStatus(),
-            currentProvider: configState.currentProvider,
-            currentModel: configState.currentModel
+            currentProvider: config.provider,
+            currentModel: config.model
         });
     });
 
