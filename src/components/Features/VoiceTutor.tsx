@@ -163,7 +163,7 @@ export const VoiceTutor: React.FC<VoiceTutorProps> = ({ onClose, contextClass })
                                 for (let i = 0; i < inputData.length; i++) sum += inputData[i] * inputData[i];
                                 const rms = Math.sqrt(sum / inputData.length);
                                 if (rms > 0.01) {
-                                    // console.log("Mic Input Detected, RMS:", rms); // Verbose, uncomment if needed
+                                    if (rms > 0.05) console.log("Mic Input Detected, RMS:", rms.toFixed(4));
                                 }
 
                                 const pcmBlob = createBlob(inputData);
@@ -247,8 +247,16 @@ export const VoiceTutor: React.FC<VoiceTutorProps> = ({ onClose, contextClass })
             sessionRef.current = session;
             console.log('[VoiceTutor] ✅ Session established!');
 
-            // Note: We skip sending an initial text greeting to prevent potential SDK mismatches
-            // or early session closure. The user can start speaking to initiate interaction.
+            // Send initial greeting to kickstart the conversation
+            if (typeof (session as any).sendRealtimeInput === 'function') {
+                setTimeout(() => {
+                    console.log('[VoiceTutor] Sending initial greeting...');
+                    (session as any).sendRealtimeInput([{
+                        mimeType: "text/plain",
+                        data: "Hello! Please introduce yourself briefly to the student."
+                    }]);
+                }, 1000); // 1s delay to ensure connection is stable
+            }
 
         } catch (err: any) {
             console.error("[VoiceTutor] ❌ Connection Failed:", err);
