@@ -193,21 +193,29 @@ export const VoiceTutor: React.FC<VoiceTutorProps> = ({ onClose, contextClass })
                         }
                     },
                     onmessage: async (msg: LiveServerMessage) => {
+                        // Debug incoming message
+                        if (msg.serverContent) {
+                            if (msg.serverContent.modelTurn) console.log("[VoiceTutor] RX: Turn received", msg.serverContent.modelTurn);
+                            if (msg.serverContent.turnComplete) console.log("[VoiceTutor] RX: Turn Complete");
+                        }
+
                         // 1. Handle Audio
                         const base64Audio = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-                        if (base64Audio && outputContextRef.current) {
-                            setStatus('SPEAKING'); setIsSpeaking(true);
-                            const ctx = outputContextRef.current;
-                            nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
-                            const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
-                            const source = ctx.createBufferSource(); source.buffer = audioBuffer; source.connect(ctx.destination);
-                            source.addEventListener('ended', () => {
-                                sourcesRef.current.delete(source);
-                                if (sourcesRef.current.size === 0) { setIsSpeaking(false); setStatus('LISTENING'); }
-                            });
-                            source.start(nextStartTimeRef.current);
-                            nextStartTimeRef.current += audioBuffer.duration;
-                            sourcesRef.current.add(source);
+                        if (base64Audio) {
+                            if (outputContextRef.current) {
+                                setStatus('SPEAKING'); setIsSpeaking(true);
+                                const ctx = outputContextRef.current;
+                                nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
+                                const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
+                                const source = ctx.createBufferSource(); source.buffer = audioBuffer; source.connect(ctx.destination);
+                                source.addEventListener('ended', () => {
+                                    sourcesRef.current.delete(source);
+                                    if (sourcesRef.current.size === 0) { setIsSpeaking(false); setStatus('LISTENING'); }
+                                });
+                                source.start(nextStartTimeRef.current);
+                                nextStartTimeRef.current += audioBuffer.duration;
+                                sourcesRef.current.add(source);
+                            }
                         }
 
                         // 2. Handle Interruption
