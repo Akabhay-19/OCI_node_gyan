@@ -185,6 +185,24 @@ const getCurrentModel = async () => {
 };
 
 // Multer Config for File Uploads
+// Helper: Get current AI provider from database (with fallback)
+const getCurrentProvider = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('app_config')
+      .select('value')
+      .eq('key', 'ai_provider')
+      .single();
+
+    if (error || !data) return 'openrouter'; // Default
+    return data.value;
+  } catch (err) {
+    console.error('[AI Config] Error getting provider:', err);
+    return 'openrouter';
+  }
+};
+
+// Multer Config for File Uploads
 const upload = multer({ dest: 'uploads/' });
 
 const cleanText = (text) => {
@@ -641,7 +659,8 @@ app.post('/api/quiz', async (req, res) => {
     4. Do NOT output trailing commas.`;
 
     const modelToUse = await getCurrentModel();
-    const response = await generate(prompt, { json: true, model: modelToUse });
+    const providerToUse = await getCurrentProvider();
+    const response = await generate(prompt, { json: true, model: modelToUse, provider: providerToUse });
     let quizData = JSON.parse(cleanText(response.text));
 
     // Validate if it's an array or wrapped object
@@ -740,7 +759,8 @@ IMPORTANT:
 4. Do NOT output trailing commas.`;
 
     const modelToUse = await getCurrentModel();
-    const response = await generate(prompt, { json: true, model: modelToUse, maxTokens: 8192 });
+    const providerToUse = await getCurrentProvider();
+    const response = await generate(prompt, { json: true, model: modelToUse, provider: providerToUse, maxTokens: 8192 });
     const data = JSON.parse(cleanText(response.text));
 
     // Post-process to add valid URLs for videos
@@ -804,7 +824,7 @@ app.post('/api/story', async (req, res) => {
     2. Escape all double quotes inside strings (e.g., \\").
     3. Escape all newlines in strings as \\\\n.`;
 
-    const response = await generate(prompt, { json: true, model: await getCurrentModel() });
+    const response = await generate(prompt, { json: true, model: await getCurrentModel(), provider: await getCurrentProvider() });
     const storyData = JSON.parse(cleanText(response.text));
 
     if (req.body.studentId) {
@@ -892,7 +912,7 @@ app.post('/api/assignment', async (req, res) => {
     
     IMPORTANT: Return ONLY valid JSON with exactly ${qCount} questions.`;
 
-    const response = await generate(prompt, { json: true, model: await getCurrentModel() });
+    const response = await generate(prompt, { json: true, model: await getCurrentModel(), provider: await getCurrentProvider() });
     const assignmentData = JSON.parse(cleanText(response.text));
 
     if (req.body.studentId) {
@@ -972,7 +992,7 @@ app.post('/api/remedial', async (req, res) => {
 
     const response = await generate(prompt, {
       json: true,
-      model: await getCurrentModel(),
+      model: await getCurrentModel(), provider: await getCurrentProvider(),
       provider: currentProvider
     });
     const data = JSON.parse(cleanText(response.text));
@@ -1212,7 +1232,7 @@ app.post('/api/chat', async (req, res) => {
       text: message + "\n\n(IMPORTANT: Use ONLY plain English text in your response. Do NOT use any LaTeX notation or mathematical symbols like \\textbf, \\nabla, \\frac, etc. Write formulas in simple readable words like 'Force = mass times acceleration'. Keep explanations clear and easy to understand.)"
     }];
 
-    const result = await chat(messages, { model: await getCurrentModel() });
+    const result = await chat(messages, { model: await getCurrentModel(), provider: await getCurrentProvider() });
     res.json({
       text: result.text,
       _meta: {
@@ -1223,7 +1243,7 @@ app.post('/api/chat', async (req, res) => {
 
   } catch (error) {
     console.error("Chat Error:", error);
-    res.status(500).json({ error: "Chat failed" });
+    res.status(500).json({ error: "Chat failed", details: error.message });
   }
 });
 
@@ -1321,7 +1341,7 @@ Return a JSON object with this EXACT structure:
         - EXCLUDE scores, percentages, or meta-commentary from gap names.
         - If student got everything correct, return empty "gaps" array with positive "overallDiagnosis".`;
 
-    const response = await generate(prompt, { json: true, model: await getCurrentModel(), maxTokens: 4096 });
+    const response = await generate(prompt, { json: true, model: await getCurrentModel(), provider: await getCurrentProvider(), maxTokens: 4096 });
     const analysisData = JSON.parse(cleanText(response.text));
 
     // Extract simple weak concepts array for backwards compatibility
@@ -1392,7 +1412,7 @@ app.post('/api/opportunities/find', async (req, res) => {
         }
         Ensure the data looks realistic and high quality.`;
 
-    const response = await generate(prompt, { json: true, model: await getCurrentModel() });
+    const response = await generate(prompt, { json: true, model: await getCurrentModel(), provider: await getCurrentProvider() });
     let aiOpportunities = [];
     try {
       const parsed = JSON.parse(cleanText(response.text));
@@ -1445,7 +1465,7 @@ app.post('/api/opportunities/find', async (req, res) => {
 
     res.json({
       opportunities: formatted,
-      _meta: { model: await getCurrentModel(), source: existing ? 'database' : 'ai+db' }
+      _meta: { model: await getCurrentModel(), provider: await getCurrentProvider(), source: existing ? 'database' : 'ai+db' }
     });
 
     // 5. Cleanup: Periodically delete expired opportunities (optional background task)
@@ -1490,7 +1510,7 @@ app.post('/api/flashcards', async (req, res) => {
         3. Escape all newlines in strings as \\\\n.
         4. Do NOT output trailing commas.`;
 
-    const response = await generate(prompt, { json: true, model: await getCurrentModel() });
+    const response = await generate(prompt, { json: true, model: await getCurrentModel(), provider: await getCurrentProvider() });
     let flashcards = JSON.parse(cleanText(response.text));
 
     // Normalize response: if AI returned {flashcards: [...] }, extract the array
@@ -1568,7 +1588,7 @@ app.post('/api/generate-mindmap', upload.single('file'), async (req, res) => {
 
     const prompt = getMindmapPrompt(text, false);
 
-    const response = await generate(prompt, { json: true, model: await getCurrentModel() });
+    const response = await generate(prompt, { json: true, model: await getCurrentModel(), provider: await getCurrentProvider() });
 
     const mindmapData = JSON.parse(cleanText(response.text));
 
@@ -1596,7 +1616,7 @@ app.post('/api/generate-mindmap-from-text', async (req, res) => {
 
     const prompt = getMindmapPrompt(text || topic, !!topic);
 
-    const response = await generate(prompt, { json: true, model: await getCurrentModel() });
+    const response = await generate(prompt, { json: true, model: await getCurrentModel(), provider: await getCurrentProvider() });
 
     const mindmapData = JSON.parse(cleanText(response.text));
     res.json(mindmapData);
@@ -2146,7 +2166,7 @@ app.post('/api/quiz/submit', async (req, res) => {
       5. Example: ["Concept A", "Concept B"]`;
 
       try {
-        const aiResponse = await generate(prompt, { json: true, model: await getCurrentModel() });
+        const aiResponse = await generate(prompt, { json: true, model: await getCurrentModel(), provider: await getCurrentProvider() });
         let identifiedGaps = JSON.parse(cleanText(aiResponse.text));
 
         // [filter] Sanitize Gaps & Hard Limit
