@@ -319,6 +319,16 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
             </>
           )}
 
+          <div className="relative">
+            <ScanLine className="absolute left-3 top-3.5 w-5 h-5 text-neon-purple/50" />
+            <Input
+              placeholder="School Invite Code"
+              value={signupData.inviteCode}
+              onChange={e => setSignupData({ ...signupData, inviteCode: e.target.value.toUpperCase() })}
+              className="pl-10 uppercase font-bold tracking-widest"
+            />
+          </div>
+
           <NeonButton
             onClick={() => {
               if (!signupData.name) return alert("Please enter your name");
@@ -328,6 +338,7 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
               if (loginRole === 'STUDENT' && !signupData.rollNumber) return alert("Please enter your roll number");
               if (loginRole === 'STUDENT' && !signupData.password) return alert("Please create a password");
               if (!signupData.mobileNumber) return alert("Please enter your mobile number");
+              if (!signupData.inviteCode) return alert("Please enter the School Invite Code provided by your admin");
 
               // Proceed with signup directly
               const verifiedData = {

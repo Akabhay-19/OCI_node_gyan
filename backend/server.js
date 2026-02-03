@@ -516,11 +516,11 @@ app.post('/api/login', async (req, res) => {
 
   try {
     if (role === 'STUDENT' || (role === 'PARENT' && asParent)) {
-      // Student login
+      console.log(`[Login] Attempting Student login for: ${username}`);
       const { data: students, error } = await supabase
         .from('students')
         .select('*')
-        .or(`username.eq.${username},mobileNumber.eq.${username},id.eq.${username}`)
+        .or(`username.eq."${username}",mobileNumber.eq."${username}",id.eq."${username}",email.eq."${username}"`)
         .eq('password', password);
 
       if (error) throw error;
@@ -541,11 +541,11 @@ app.post('/api/login', async (req, res) => {
       }
 
     } else if (role === 'TEACHER') {
-      // Teacher login
+      console.log(`[Login] Attempting Teacher login for: ${email}`);
       const { data: teachers, error } = await supabase
         .from('teachers')
         .select('*')
-        .or(`email.eq.${email},mobileNumber.eq.${email}`)
+        .or(`email.eq."${email}",mobileNumber.eq."${email}"`)
         .eq('password', password);
 
       if (error) throw error;
@@ -554,18 +554,27 @@ app.post('/api/login', async (req, res) => {
       res.json(teachers[0]);
 
     } else if (role === 'ADMIN') {
+      console.log(`[Login] Attempting Admin login for: ${email}`);
       const { data: schools, error } = await supabase
         .from('schools')
         .select('*')
         .eq('adminEmail', email)
         .eq('password', password); // Verify password
 
-      if (error) throw error;
-      if (!schools || schools.length === 0) return res.status(401).json({ error: "Invalid credentials" });
+      if (error) {
+        console.error("[Login] Admin DB Error:", error);
+        throw error;
+      }
+      if (!schools || schools.length === 0) {
+        console.warn(`[Login] Admin login failed for ${email}: No school found or wrong password.`);
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
 
       const school = schools[0];
+      console.log(`[Login] Admin login success: ${school.name}`);
       res.json({ id: school.id, name: school.name, email: school.adminEmail, role: 'ADMIN', schoolId: school.id });
     } else {
+      console.warn(`[Login] Invalid role attempted: ${role}`);
       res.status(400).json({ error: "Invalid role" });
     }
   } catch (err) {
@@ -1726,8 +1735,7 @@ app.get('/api/students', async (req, res) => {
 });
 
 app.post('/api/students', async (req, res) => {
-  const { id, schoolId, classId, name, email, mobileNumber, rollNumber, username, password, grade, attendance, avgScore, status, weakerSubjects, weaknessHistory } = req.body;
-
+  console.log(`[Join] Creating new student: ${name} for school ${schoolId}`);
   try {
     const { data, error } = await supabase
       .from('students')
