@@ -1699,6 +1699,11 @@ app.get('/api/schools', async (req, res) => {
 
     res.json(schoolsWithFaculty);
   } catch (err) {
+    if (err.message?.includes('relation') && err.message?.includes('does not exist')) {
+        console.error(`[CRITICAL] Supabase table 'schools' or 'teachers' is missing! Run setup_all_tables.sql`);
+    } else {
+        console.error("Schools Fetch Error:", err.message);
+    }
     res.status(500).json({ error: err.message });
   }
 });
