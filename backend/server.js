@@ -1735,6 +1735,7 @@ app.get('/api/students', async (req, res) => {
 });
 
 app.post('/api/students', async (req, res) => {
+  const { id, schoolId, classId, name, email, mobileNumber, rollNumber, username, password, grade, attendance, avgScore, status, weakerSubjects, weaknessHistory } = req.body;
   console.log(`[Join] Creating new student: ${name} for school ${schoolId}`);
   try {
     const { data, error } = await supabase
@@ -2741,8 +2742,7 @@ app.post('/api/mindmap', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: "Could not extract enough text from file." });
     }
 
-    // Generate Mind Map JSON with Gemini
-    const model = ai.getGenerativeModel({ model: MODEL_NAME });
+    // Generate Mind Map JSON with AI
     const gradeLevel = req.body.gradeLevel || 'Grade 10';
     const subject = req.body.subject || 'General';
 
@@ -2752,31 +2752,30 @@ app.post('/api/mindmap', upload.single('file'), async (req, res) => {
         Return ONLY valid JSON data matching this exact structure for ReactFlow:
         {
           "nodes": [
-        {"id": "1", "type": "input", "data": {"label": "Main Topic" }, "position": {"x": 250, "y": 0 } },
-        {"id": "2", "data": {"label": "Subtopic" }, "position": {"x": 100, "y": 100 } }
-        ],
-        "edges": [
-        {"id": "e1-2", "source": "1", "target": "2" }
-        ]
-            }
+            {"id": "1", "type": "input", "data": {"label": "Main Topic" }, "position": {"x": 250, "y": 0 } },
+            {"id": "2", "data": {"label": "Subtopic" }, "position": {"x": 100, "y": 100 } }
+          ],
+          "edges": [
+            {"id": "e1-2", "source": "1", "target": "2" }
+          ]
+        }
 
         Rules:
         1. Identify the central core concept as the root node (type: 'input').
         2. Identify 3-5 main branches (subtopics).
         3. For each subtopic, identify key details as child nodes.
         4. Layout the nodes:
-        - Root at x:250, y:0.
-        - Level 1 nodes spread horizontally below root (y: 100-200).
-        - Level 2 nodes below their parents.
+           - Root at x:250, y:0.
+           - Level 1 nodes spread horizontally below root (y: 100-200).
+           - Level 2 nodes below their parents.
         5. Do NOT include markdown formatting or backticks. Just the raw JSON object.
 
         Text to analyze:
         ${text.substring(0, 15000)}
-        `;
+    `;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    const jsonStr = cleanText(responseText);
+    const result = await generate(prompt);
+    const jsonStr = cleanText(result.text);
     const mindMapData = JSON.parse(jsonStr);
 
     res.json(mindMapData);
