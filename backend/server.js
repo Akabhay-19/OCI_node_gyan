@@ -472,58 +472,6 @@ app.get('/api/ai/status', async (req, res) => {
   });
 });
 
-// --- EMAIL OTP VERIFICATION ---
-
-// Send OTP to email
-app.post('/api/auth/send-email-otp', async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
-    }
-
-    const result = await sendEmailOTP(email);
-
-    if (!result.success) {
-      return res.status(400).json({ error: result.error });
-    }
-
-    res.json({ success: true, message: 'OTP sent successfully' });
-  } catch (err) {
-    console.error('[Email OTP] Send error:', err);
-    res.status(500).json({ error: 'Failed to send OTP' });
-  }
-});
-
-// Verify email OTP
-app.post('/api/auth/verify-email-otp', async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-
-    if (!email || !otp) {
-      return res.status(400).json({ error: 'Email and OTP are required' });
-    }
-
-    const result = verifyEmailOTP(email, otp);
-
-    if (!result.success) {
-      return res.status(400).json({ error: result.error });
-    }
-
-    res.json({ success: true, message: 'Email verified successfully' });
-  } catch (err) {
-    console.error('[Email OTP] Verify error:', err);
-    res.status(500).json({ error: 'Failed to verify OTP' });
-  }
-});
-
 // Developer Console Login
 app.post('/api/auth/dev-login', async (req, res) => {
   const { email, password } = req.body;
@@ -1700,9 +1648,9 @@ app.get('/api/schools', async (req, res) => {
     res.json(schoolsWithFaculty);
   } catch (err) {
     if (err.message?.includes('relation') && err.message?.includes('does not exist')) {
-        console.error(`[CRITICAL] Supabase table 'schools' or 'teachers' is missing! Run setup_all_tables.sql`);
+      console.error(`[CRITICAL] Supabase table 'schools' or 'teachers' is missing! Run setup_all_tables.sql`);
     } else {
-        console.error("Schools Fetch Error:", err.message);
+      console.error("Schools Fetch Error:", err.message);
     }
     res.status(500).json({ error: err.message });
   }

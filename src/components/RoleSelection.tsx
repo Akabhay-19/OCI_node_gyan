@@ -2,8 +2,7 @@ import React, { useState, useRef } from 'react';
 import { UserRole, Teacher } from '../types';
 import { NeonCard, NeonButton, Input } from './UIComponents';
 import { ForgotPassword } from './ForgotPassword';
-import { VerificationModal } from './VerificationModal';
-import { GraduationCap, Users, ShieldCheck, Baby, ArrowLeft, LogIn, UserPlus, ChevronRight, User, Mail, BookOpen, Rocket, Building2, Upload, ScanLine, Phone, MapPin, Camera, Home } from 'lucide-react';
+import { GraduationCap, Users, ShieldCheck, Baby, ArrowLeft, LogIn, UserPlus, ChevronRight, User, Mail, BookOpen, Rocket, Building2, Upload, ScanLine, Phone, MapPin, Camera, Home, CheckCircle } from 'lucide-react';
 
 interface RoleSelectionProps {
   onSelectRole: (role: UserRole) => void;
@@ -19,29 +18,11 @@ interface RoleSelectionProps {
 export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLogin, onSignupDetails, onRegisterSchool, onBackToHome, faculty = [], initialView = 'HOME', showLoginButton = true }) => {
   const [view, setView] = useState<'HOME' | 'LOGIN' | 'SIGNUP_DETAILS' | 'REGISTER_SCHOOL' | 'FORGOT_PASSWORD'>(initialView as any);
   const [signupData, setSignupData] = useState({ name: '', email: '', mobileNumber: '', rollNumber: '', username: '', password: '', className: '', stream: '', inviteCode: '' });
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [schoolData, setSchoolData] = useState({ schoolName: '', adminName: '', adminEmail: '', password: '', mobileNumber: '', motto: '', address: '', city: '', state: '', pincode: '', logoUrl: '' });
   const [loginRole, setLoginRole] = useState<UserRole | null>('STUDENT');
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
   const logoInputRef = useRef<HTMLInputElement>(null);
 
-  // Verification modal state
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [pendingSignupData, setPendingSignupData] = useState<any>(null);
-  const [pendingRole, setPendingRole] = useState<UserRole | null>(null);
-
-  const handleVerifyEmail = () => {
-    if (!signupData.email) return alert("Please enter your email address first");
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(signupData.email)) return alert("Please enter a valid email address");
-
-    setShowVerificationModal(true);
-  };
-
-  const handleVerificationComplete = (email: string) => {
-    setIsEmailVerified(true);
-    setShowVerificationModal(false);
-  };
 
 
   if (view === 'HOME') {
@@ -316,22 +297,8 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
               value={signupData.email}
               onChange={e => {
                 setSignupData({ ...signupData, email: e.target.value });
-                if (isEmailVerified) setIsEmailVerified(false);
               }}
-              className={isEmailVerified ? "pr-24 border-green-500/50" : "pr-24"}
             />
-            {isEmailVerified ? (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-green-400 text-xs font-bold">
-                <CheckCircle className="w-4 h-4" /> VERIFIED
-              </div>
-            ) : (
-              <button
-                onClick={handleVerifyEmail}
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-neon-purple/20 hover:bg-neon-purple/40 border border-neon-purple/50 text-neon-purple text-xs font-bold rounded-md transition-all"
-              >
-                VERIFY
-              </button>
-            )}
           </div>
 
           {loginRole === 'TEACHER' ? (
@@ -356,7 +323,6 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
             onClick={() => {
               if (!signupData.name) return alert("Please enter your name");
               if (!signupData.email) return alert("Please enter your email");
-              if (!isEmailVerified) return alert("Please verify your email address first");
               if (loginRole === 'TEACHER' && !signupData.password) return alert("Please create a password");
               if (loginRole === 'STUDENT' && !signupData.className) return alert("Please select your grade");
               if (loginRole === 'STUDENT' && !signupData.rollNumber) return alert("Please enter your roll number");
@@ -367,26 +333,16 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
               const verifiedData = {
                 ...signupData,
                 emailVerified: true,
-                phoneVerified: true // Set to true as we're removing phone OTP
+                phoneVerified: true
               };
               onSignupDetails(verifiedData);
               onSelectRole(loginRole!);
             }}
             className="w-full"
             glow
-            disabled={!isEmailVerified}
           >
             Create {loginRole} Account
           </NeonButton>
-        </NeonCard>
-
-        {/* Verification Modal */}
-        <VerificationModal
-          isOpen={showVerificationModal}
-          onClose={() => setShowVerificationModal(false)}
-          email={signupData.email}
-          onVerified={handleVerificationComplete}
-        />
       </div>
     );
   }

@@ -8,58 +8,6 @@ const router = express.Router();
 export const createAuthRoutes = (supabase, emailService) => {
     const { sendEmailOTP, verifyEmailOTP, sendPasswordResetEmail } = emailService;
 
-    // --- EMAIL OTP VERIFICATION ---
-
-    // Send OTP to email
-    router.post('/send-email-otp', async (req, res) => {
-        try {
-            const { email } = req.body;
-
-            if (!email) {
-                return res.status(400).json({ error: 'Email is required' });
-            }
-
-            // Basic email validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                return res.status(400).json({ error: 'Invalid email format' });
-            }
-
-            const result = await sendEmailOTP(email);
-
-            if (!result.success) {
-                return res.status(400).json({ error: result.error });
-            }
-
-            res.json({ success: true, message: 'OTP sent successfully' });
-        } catch (err) {
-            console.error('[Email OTP] Send error:', err);
-            res.status(500).json({ error: 'Failed to send OTP' });
-        }
-    });
-
-    // Verify email OTP
-    router.post('/verify-email-otp', async (req, res) => {
-        try {
-            const { email, otp } = req.body;
-
-            if (!email || !otp) {
-                return res.status(400).json({ error: 'Email and OTP are required' });
-            }
-
-            const result = verifyEmailOTP(email, otp);
-
-            if (!result.success) {
-                return res.status(400).json({ error: result.error });
-            }
-
-            res.json({ success: true, message: 'Email verified successfully' });
-        } catch (err) {
-            console.error('[Email OTP] Verify error:', err);
-            res.status(500).json({ error: 'Failed to verify OTP' });
-        }
-    });
-
     // Developer Console Login
     router.post('/dev-login', async (req, res) => {
         const { email, password } = req.body;
