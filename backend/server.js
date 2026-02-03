@@ -486,9 +486,11 @@ app.post('/api/auth/dev-login', async (req, res) => {
       .single();
 
     if (error || !user) {
+      console.warn(`[Dev Auth] Login failed: User ${email} not found or role mismatch.`);
       return res.status(401).json({ error: 'Invalid Developer Credentials' });
     }
 
+    console.log(`[Dev Auth] User found: ${email}. Verifying password...`);
     const isValid = await bcrypt.compare(password, user.password_hash);
 
     if (isValid) {

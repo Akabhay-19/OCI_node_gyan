@@ -21,9 +21,11 @@ export const createAuthRoutes = (supabase, emailService) => {
                 .single();
 
             if (error || !user) {
+                console.warn(`[Dev Auth Router] Login failed: User ${email} not found.`);
                 return res.status(401).json({ error: 'Invalid Developer Credentials' });
             }
 
+            console.log(`[Dev Auth Router] User found: ${email}. Verifying password...`);
             const isValid = await bcrypt.compare(password, user.password_hash);
 
             if (isValid) {
