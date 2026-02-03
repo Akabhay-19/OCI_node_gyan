@@ -56,6 +56,7 @@ create table if not exists students (
     "mobileNumber" text,
     "rollNumber" text,
     username text,
+    email text,
     password text,
     grade text,
     attendance integer default 0,

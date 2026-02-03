@@ -268,6 +268,7 @@ const AppContent: React.FC = () => {
         id: `STU-${Date.now()}`,
         schoolId: targetSchool.id,
         name: tempSignupData.name,
+        email: tempSignupData.email,
         mobileNumber: tempSignupData.mobileNumber,
         rollNumber: tempSignupData.rollNumber,
         username: generatedUsername,
@@ -286,8 +287,9 @@ const AppContent: React.FC = () => {
         alert(`Registration Successful!\n\nYour Username is: ${generatedUsername}\nPlease save this for login.`);
         setAppState(prev => ({ ...prev, schoolName: targetSchool.name, schoolId: targetSchool.id, schoolLogo: targetSchool.logoUrl, currentUser: newStudent }));
         navigate('/class-selection');
-      } catch (e) {
-        alert("Failed to join school");
+      } catch (e: any) {
+        console.error("Join School Error:", e);
+        alert(`Failed to join school: ${e.message || JSON.stringify(e)}`);
       }
     } else if (appState.userRole === 'TEACHER') {
       const newTeacher: Teacher = {
@@ -306,8 +308,9 @@ const AppContent: React.FC = () => {
         setSchools(prev => prev.map(s => s.id === targetSchool.id ? { ...s, faculty: [...(s.faculty || []), newTeacher] } : s));
         setAppState(prev => ({ ...prev, schoolName: targetSchool.name, schoolId: targetSchool.id, schoolLogo: targetSchool.logoUrl, currentUser: newTeacher }));
         navigate('/dashboard/overview');
-      } catch (e) {
-        alert("Failed to join school as teacher");
+      } catch (e: any) {
+        console.error("Join School (Teacher) Error:", e);
+        alert(`Failed to join school as teacher: ${e.message || JSON.stringify(e)}`);
       }
     }
   };

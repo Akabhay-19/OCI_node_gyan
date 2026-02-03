@@ -520,7 +520,7 @@ app.post('/api/login', async (req, res) => {
       const { data: students, error } = await supabase
         .from('students')
         .select('*')
-        .or(`username.eq."${username}",mobileNumber.eq."${username}",id.eq."${username}",email.eq."${username}"`)
+        .or(`username.eq.${username},mobileNumber.eq.${username},id.eq.${username},email.eq.${username}`)
         .eq('password', password);
 
       if (error) throw error;
@@ -545,7 +545,7 @@ app.post('/api/login', async (req, res) => {
       const { data: teachers, error } = await supabase
         .from('teachers')
         .select('*')
-        .or(`email.eq."${email}",mobileNumber.eq."${email}"`)
+        .or(`email.eq.${email},mobileNumber.eq.${email}`)
         .eq('password', password);
 
       if (error) throw error;
