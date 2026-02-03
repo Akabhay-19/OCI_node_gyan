@@ -343,6 +343,7 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
           >
             Create {loginRole} Account
           </NeonButton>
+        </NeonCard>
       </div>
     );
   }
