@@ -15,7 +15,6 @@ services:
         sync: false
       - key: VITE_GEMINI_API_KEY
         sync: false
-services:
   - type: web
     name: gyan-flutter-web
     env: static
