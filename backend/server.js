@@ -1707,13 +1707,13 @@ app.put('/api/teachers/:id', async (req, res) => {
 
 // Teachers
 app.post('/api/teachers', async (req, res) => {
-  const { id, schoolId, name, email, subject, joinedAt, assignedClasses } = req.body;
+  const { id, schoolId, name, email, subject, joinedAt, assignedClasses, password } = req.body;
 
   try {
     const { error } = await supabase
       .from('teachers')
       .insert([{
-        id, schoolId, name, email, subject, joinedAt, assignedClasses
+        id, schoolId, name, email, subject, joinedAt, assignedClasses, password
       }]);
 
     if (error) throw error;
