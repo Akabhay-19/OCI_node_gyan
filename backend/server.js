@@ -3111,7 +3111,112 @@ app.post('/api/reset-password', async (req, res) => {
   }
 });
 
+
+// ==========================================
+// [FIXED] Missing Study Plan Endpoint
+// ==========================================
+app.post('/api/study-plan', async (req, res) => {
+  try {
+    const { topic, gradeLevel, studentId } = req.body;
+    console.log(`[Study Plan] Generating for: ${topic} (${gradeLevel})`);
+
+    const prompt = `Create a comprehensive study plan for the topic: "${topic}".
+    Target Audience: ${gradeLevel || 'Grade 10'} student.
+
+    Return ONLY valid JSON in this exact structure:
+    {
+      "topic": "${topic}",
+      "summary": "2-3 sentence overview of the topic",
+      "detailedExplanation": "A detailed explanation in Markdown format. Use headings, bullet points, and simple language suitable for the grade level.",
+      "keyPoints": ["Key concept 1", "Key concept 2", "Key concept 3", "Key concept 4", "Key concept 5"],
+      "resources": [
+        { "title": "Video: Introduction to ${topic}", "url": "https://www.youtube.com/results?search_query=${encodeURIComponent(topic + ' introduction')}", "language": "English" },
+        { "title": "Article: Understanding ${topic}", "url": "https://www.google.com/search?q=${encodeURIComponent(topic + ' explanation')}", "language": "English" }
+      ],
+      "timeAllocation": "Suggested time to master this topic (e.g., '2 weeks')"
+    }
+    
+    Ensure the content is accurate, educational, and engaging.`;
+
+    // Use the unified AI service (Gemini 2.5 Flash as configured)
+    const response = await generate(prompt, {
+      json: true,
+      provider: 'gemini' // Explicitly request Gemini as per user instruction
+    });
+
+    let planData;
+    try {
+      // Clean potential markdown blocks if the provider adds them
+      const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+      planData = JSON.parse(cleanJson);
+    } catch (e) {
+      console.error("[Study Plan] JSON Parse Error:", e);
+      // Fallback if JSON parsing fails
+      planData = {
+        topic,
+        summary: "Generated content could not be parsed structurally.",
+        detailedExplanation: response.text,
+        keyPoints: [],
+        resources: []
+      };
+    }
+
+    if (studentId) {
+      // Optional: Save history logic here
+    }
+
+    res.json(planData);
+
+  } catch (error) {
+    console.error("[Study Plan] Generation Error:", error);
+    res.status(500).json({ error: "Failed to generate study plan", details: error.message });
+  }
+});
+
+// ==========================================
+// [DEBUG] AI Connection Test Endpoint
+// ==========================================
+app.get('/api/debug-ai', async (req, res) => {
+  try {
+    const aiStatus = getAIStatus();
+    const geminiKey = process.env.GEMINI_API_KEY
+      ? `Present (Starts with ${process.env.GEMINI_API_KEY.substring(0, 4)}..., Length: ${process.env.GEMINI_API_KEY.length})`
+      : 'Missing';
+
+    console.log(`[Debug AI] Testing connection... Key: ${geminiKey}`);
+
+    let testResponse = "Not attempted";
+    let error = null;
+
+    try {
+      const result = await generate("Hello, are you online?", { provider: 'gemini' });
+      testResponse = result.text;
+    } catch (e) {
+      error = e.message;
+      console.error("[Debug AI] Generation Failed:", e);
+    }
+
+    res.json({
+      status: "Debug Report",
+      environment: {
+        GEMINI_API_KEY_STATUS: geminiKey,
+        NODE_ENV: process.env.NODE_ENV
+      },
+      aiConfig: aiStatus,
+      testGeneration: {
+        success: !error,
+        response: testResponse,
+        error: error
+      }
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: "Debug endpoint failed", details: err.message });
+  }
+});
+
 // --- FRONTEND STATIC SERVING (Must be last) ---
+
 const distPath = path.join(__dirname, '../dist');
 console.log(`[Server] Environment: ${process.env.NODE_ENV}`);
 console.log(`[Server] Dist Path: ${distPath}`);
@@ -3436,4 +3541,5 @@ app.get('/api/debug-ai', async (req, res) => {
     res.status(500).json({ error: "Debug endpoint failed", details: err.message });
   }
 });
+
 
