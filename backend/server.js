@@ -3392,8 +3392,3 @@ app.post('/api/study-plan', async (req, res) => {
   }
 });
 
-// Start Server (Found at end of file usually, ensuring this is before listen)
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Backend server running on port ${PORT}`);
-});
