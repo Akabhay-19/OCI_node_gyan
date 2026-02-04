@@ -16,7 +16,8 @@ export function handleGeminiStream(wss, req) {
 
     // Default Model Configuration
     // We can also parse query params from req.url if needed
-    const model = 'gemini-2.5-flash-native-audio-latest';
+    // Use the validated model
+    const model = 'gemini-2.5-flash';
     const host = 'generativelanguage.googleapis.com';
     const path = `/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
     const uri = `wss://${host}${path}`;
