@@ -17,8 +17,8 @@ export function handleGeminiStream(wss, req) {
     // Default Model Configuration
     // We can also parse query params from req.url if needed
     // Use the validated model (Flash 2.5 does NOT support bidi stream yet)
-    // Use the experimental flash model which supports BidiGenerateContent
-    const model = 'gemini-2.0-flash-exp';
+    // Use the specific Live API model (Valid Feb 2026)
+    const model = 'gemini-live-2.5-flash-native-audio-preview-09-2025';
     const host = 'generativelanguage.googleapis.com';
     const path = `/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
     const uri = `wss://${host}${path}`;
