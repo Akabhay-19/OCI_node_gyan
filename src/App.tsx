@@ -59,6 +59,8 @@ const AppContent: React.FC = () => {
           api.getAnnouncements()
         ]);
 
+
+        console.log("Fetched Schools:", schoolsRes);
         setSchools(schoolsRes);
         setGlobalStudents(studentsRes);
         setClassrooms(classroomsRes);

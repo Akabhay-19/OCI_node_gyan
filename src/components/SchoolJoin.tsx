@@ -21,10 +21,20 @@ export const SchoolJoin: React.FC<SchoolJoinProps> = ({ role, availableSchools, 
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Attempting to join with code:", code);
+    console.log("Available schools:", availableSchools.map(s => ({ name: s.name, code: s.inviteCode })));
+
     const school = availableSchools.find(s => (s.inviteCode || '').toUpperCase() === code.trim().toUpperCase());
-    if (!school) setError("Invalid Code");
-    else if (isLocked) setError("Locked");
-    else onJoinSchool(school.id);
+
+    if (!school) {
+      console.warn("No school found matching code:", code);
+      setError("Invalid Code");
+    } else if (isLocked) {
+      setError("Locked");
+    } else {
+      console.log("Found school:", school.name);
+      onJoinSchool(school.id);
+    }
   };
 
   return (
