@@ -36,8 +36,8 @@ const MODELS = {
         gemini: 'google/gemini-2.5-flash'
     },
     gemini: {
-        default: 'gemini-1.5-flash', // STABLE: 2.0-flash-exp returned 404. 1.5-flash is reliable.
-        powerful: 'gemini-1.5-pro'
+        default: 'models/gemini-2.5-flash', // Verified: User has access to this specific model
+        powerful: 'models/gemini-1.5-pro'
     }
 };
 
@@ -108,8 +108,19 @@ async function generateWithGemini(prompt, options = {}) {
             config
         });
 
+        // Robust handling for different SDK versions (@google/genai vs @google/generative-ai)
+        let responseText = '';
+        if (typeof response.text === 'function') {
+            responseText = response.text();
+        } else if (response.text) {
+            responseText = response.text;
+        } else if (response.candidates && response.candidates[0] && response.candidates[0].content) {
+            // Fallback for raw candidate access
+            responseText = response.candidates[0].content.parts[0].text;
+        }
+
         return {
-            text: response.text,
+            text: responseText,
             model: modelName,
             provider: 'gemini'
         };
