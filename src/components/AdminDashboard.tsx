@@ -602,7 +602,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 <div className="flex gap-4 mb-8 border-b border-white/10 pb-4 flex-wrap">
-                    {['OVERVIEW', 'TEACHERS', 'STUDENTS', 'CLASSES', 'MANAGE CLASSES', 'RESOURCES', 'ATTENDANCE', 'LEADERBOARD', 'ANNOUNCEMENTS', 'SETTINGS'].map(tab => (
+                    {['OVERVIEW', 'TEACHERS', 'STUDENTS', 'MANAGE CLASSES', 'RESOURCES', 'ATTENDANCE', 'LEADERBOARD', 'ANNOUNCEMENTS', 'SETTINGS'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => handleTabChange(tab)}
@@ -1089,8 +1089,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     return null;
                 })()}
 
-                {/* CLASSES TAB - Grade Hierarchy */}
-                {activeTab === 'CLASSES' && (() => {
+                {/* MANAGE CLASSES TAB - Grade Hierarchy */}
+                {activeTab === 'MANAGE CLASSES' && (() => {
                     // Helper to get ACTIVE classes for a grade (exclude archived)
                     const getClassesForGrade = (grade: string) => {
                         const activeClassrooms = classrooms.filter(c => c.status !== 'ARCHIVED');
@@ -1191,11 +1191,83 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         );
                     };
 
+                    // ARCHIVED VIEW
+                    if (showArchived) {
+                        return (
+                            <div className="space-y-6 animate-fade-in">
+                                <div className="flex items-center gap-4">
+                                    <button onClick={() => setShowArchived(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                        <ArrowLeft className="w-5 h-5 text-white" />
+                                    </button>
+                                    <h3 className="text-xl font-bold text-red-400 flex items-center gap-2">
+                                        <Trash2 className="w-5 h-5" />
+                                        Archived Classes
+                                        <span className="text-xs text-gray-500 font-normal ml-2">Auto-purged after 7 days</span>
+                                    </h3>
+                                </div>
+
+                                {archivedClasses.length === 0 ? (
+                                    <div className="p-12 text-center text-gray-500 bg-white/5 rounded-xl border border-white/10">
+                                        <Trash2 className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                        No archived classes found.
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {archivedClasses.map(c => {
+                                            const archivedDate = c.archivedAt ? new Date(c.archivedAt) : new Date();
+                                            const expiryDate = new Date(archivedDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+                                            const daysRemaining = Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+
+                                            return (
+                                                <NeonCard key={c.id} glowColor="red" className="p-4 opacity-80">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div>
+                                                            <h4 className="font-bold text-white">{c.name}</h4>
+                                                            <p className="text-xs text-gray-500">Section {c.section}</p>
+                                                        </div>
+                                                        <span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400">
+                                                            {daysRemaining} days left
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-400 mb-3">
+                                                        {students.filter(s => s.classId === c.id).length} students
+                                                    </p>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            className="flex-1 py-2 px-4 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 font-bold flex items-center justify-center gap-2"
+                                                            onClick={() => {
+                                                                if (onRestoreClass) onRestoreClass(c.id);
+                                                            }}
+                                                        >
+                                                            <RotateCcw className="w-4 h-4" />
+                                                            Restore
+                                                        </button>
+                                                    </div>
+                                                </NeonCard>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    }
+
                     // GRADES VIEW
                     if (classView === 'GRADES') {
                         return (
                             <div className="space-y-8 animate-fade-in">
-                                <h2 className="text-2xl font-bold text-white">Class Management</h2>
+                                <div className="flex justify-between items-center">
+                                    <h2 className="text-2xl font-bold text-white">Class Management</h2>
+                                    <NeonButton
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setShowArchived(true)}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                        Archived
+                                    </NeonButton>
+                                </div>
 
                                 {/* Pre-Primary */}
                                 <div>
@@ -1506,87 +1578,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 })()}
 
 
-                {/* MANAGE CLASSES TAB */}
-                {activeTab === 'MANAGE CLASSES' && (() => {
-                    const archivedClasses = classrooms.filter(c => c.status === 'ARCHIVED');
+                {/* ARCHIVED CLASSES LOGIC (Merged into MANAGE CLASSES via toggles) */}
+                {/* Previous separate MANAGE CLASSES tab removed. Logic integrated above. */}
 
-                    return (
-                        <div className="space-y-6 animate-fade-in">
-                            <h2 className="text-2xl font-bold text-white mb-6">Class Management</h2>
-
-                            {!showArchived ? (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <NeonCard
-                                        className="p-8 flex flex-col items-center justify-center cursor-pointer hover:border-red-500/50 group transition-all min-h-[200px]"
-                                        onClick={() => setShowArchived(true)}
-                                        glowColor="red"
-                                    >
-                                        <Trash2 className="w-6 h-6 text-gray-600 group-hover:text-red-400 transition-colors mb-4" />
-                                        <h3 className="text-xl font-bold text-white">Archived Classes</h3>
-                                        <p className="text-gray-400 text-sm mt-2 text-center">View and restore deleted sections ({archivedClasses.length})</p>
-                                    </NeonCard>
-                                    {/* Placeholder for other management features */}
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-4">
-                                        <button onClick={() => setShowArchived(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                                            <ArrowLeft className="w-5 h-5 text-white" />
-                                        </button>
-                                        <h3 className="text-xl font-bold text-red-400 flex items-center gap-2">
-                                            <Trash2 className="w-5 h-5" />
-                                            Archived Classes
-                                            <span className="text-xs text-gray-500 font-normal ml-2">Auto-purged after 7 days</span>
-                                        </h3>
-                                    </div>
-
-                                    {archivedClasses.length === 0 ? (
-                                        <div className="p-12 text-center text-gray-500 bg-white/5 rounded-xl border border-white/10">
-                                            <Trash2 className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                            No archived classes found.
-                                        </div>
-                                    ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {archivedClasses.map(c => {
-                                                const archivedDate = c.archivedAt ? new Date(c.archivedAt) : new Date();
-                                                const expiryDate = new Date(archivedDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-                                                const daysRemaining = Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
-
-                                                return (
-                                                    <NeonCard key={c.id} glowColor="red" className="p-4 opacity-80">
-                                                        <div className="flex justify-between items-start mb-3">
-                                                            <div>
-                                                                <h4 className="font-bold text-white">{c.name}</h4>
-                                                                <p className="text-xs text-gray-500">Section {c.section}</p>
-                                                            </div>
-                                                            <span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400">
-                                                                {daysRemaining} days left
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-sm text-gray-400 mb-3">
-                                                            {students.filter(s => s.classId === c.id).length} students
-                                                        </p>
-                                                        <div className="flex gap-2">
-                                                            <button
-                                                                className="flex-1 py-2 px-4 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 font-bold flex items-center justify-center gap-2"
-                                                                onClick={() => {
-                                                                    if (onRestoreClass) onRestoreClass(c.id);
-                                                                }}
-                                                            >
-                                                                <RotateCcw className="w-4 h-4" />
-                                                                Restore
-                                                            </button>
-                                                        </div>
-                                                    </NeonCard>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    );
-                })()}
 
                 {/* ATTENDANCE TAB */}
                 {activeTab === 'ATTENDANCE' && renderAttendanceContent()}
