@@ -3392,3 +3392,48 @@ app.post('/api/study-plan', async (req, res) => {
   }
 });
 
+// ==========================================
+// [DEBUG] AI Connection Test Endpoint
+// ==========================================
+app.get('/api/debug-ai', async (req, res) => {
+  try {
+    const aiStatus = getAIStatus();
+    // Mask key for safety but confirm presence and length
+    const geminiKey = process.env.GEMINI_API_KEY
+      ? `Present (Starts with ${process.env.GEMINI_API_KEY.substring(0, 4)}..., Length: ${process.env.GEMINI_API_KEY.length})`
+      : 'Missing';
+
+    console.log(`[Debug AI] Testing connection... Key Status: ${geminiKey}`);
+
+    // simple test generation
+    let testResponse = "Not attempted";
+    let error = null;
+
+    try {
+      // Use the simplest model first to verify connection
+      const result = await generate("Hello, are you online?", { provider: 'gemini' });
+      testResponse = result.text;
+    } catch (e) {
+      error = e.message;
+      console.error("[Debug AI] Generation Failed:", e);
+    }
+
+    res.json({
+      status: "Debug Report",
+      environment: {
+        GEMINI_API_KEY_STATUS: geminiKey,
+        NODE_ENV: process.env.NODE_ENV
+      },
+      aiConfig: aiStatus,
+      testGeneration: {
+        success: !error,
+        response: testResponse,
+        error: error
+      }
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: "Debug endpoint failed", details: err.message });
+  }
+});
+
