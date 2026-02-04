@@ -3187,7 +3187,40 @@ app.get('/api/debug-ai', async (req, res) => {
 
     let testResponse = "Not attempted";
     let error = null;
+    let availableModels = [];
 
+    // 1. Try to list models to see what is actually available
+    try {
+      if (process.env.GEMINI_API_KEY) {
+        // Determine if we are using @google/genai or @google/generative-ai based on earlier analysis
+        // ai-service.js imports { GoogleGenAI } from "@google/genai"
+        // The new SDK usually has client.models.list()
+        // We need to access the client instance.
+        // Since we can't easily import the client instance from ai-service (it's not exported),
+        // we will instantiate a local one for debugging.
+
+        // Dynamic import to match ai-service.js
+        const { GoogleGenAI } = await import("@google/genai");
+        const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+        // Try listing
+        const listResp = await client.models.list();
+        // usage might vary by SDK version.
+        // If it returns an object with .models property or is iterable
+        if (listResp && listResp.models) {
+          availableModels = listResp.models.map(m => m.name || m.displayName);
+        } else if (Array.isArray(listResp)) {
+          availableModels = listResp.map(m => m.name || m.displayName);
+        } else {
+          availableModels = ["Could not parse list response", JSON.stringify(listResp)];
+        }
+      }
+    } catch (listErr) {
+      console.error("[Debug AI] List Models Failed:", listErr);
+      availableModels = [`List Failed: ${listErr.message}`];
+    }
+
+    // 2. Try generation
     try {
       const result = await generate("Hello, are you online?", { provider: 'gemini' });
       testResponse = result.text;
@@ -3203,6 +3236,7 @@ app.get('/api/debug-ai', async (req, res) => {
         NODE_ENV: process.env.NODE_ENV
       },
       aiConfig: aiStatus,
+      availableModels: availableModels,
       testGeneration: {
         success: !error,
         response: testResponse,
