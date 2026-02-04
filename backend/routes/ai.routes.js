@@ -9,8 +9,8 @@ export const createAIRoutes = (aiService, supabase) => {
 
     // Default values (used if DB fetch fails)
     const defaults = {
-        provider: process.env.AI_PROVIDER || 'openrouter',
-        model: process.env.OPENROUTER_DEFAULT_MODEL || 'google/gemini-2.0-flash-exp:free',
+        provider: process.env.AI_PROVIDER || 'gemini',
+        model: process.env.OPENROUTER_DEFAULT_MODEL || 'gemini-2.0-flash-exp',
         audioModel: 'gemini-2.5-flash-native-audio-latest'
     };
 
