@@ -22,7 +22,7 @@ dotenv.config({ path: path.join(__dirname, '../.env.local') });
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 // --- Configuration ---
-const AI_PROVIDER = 'openrouter';
+const AI_PROVIDER = 'gemini';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.REACT_APP_GEMINI_API_KEY;
 
@@ -36,7 +36,7 @@ const MODELS = {
         gemini: 'google/gemini-2.5-flash'
     },
     gemini: {
-        default: 'gemini-2.0-flash',
+        default: 'gemini-2.0-flash-exp',
         powerful: 'gemini-2.0-pro-exp-02-05'
     }
 };
