@@ -36,8 +36,8 @@ const MODELS = {
         gemini: 'google/gemini-2.5-flash'
     },
     gemini: {
-        default: 'models/gemini-3-pro-preview', // UPGRADE: User explicitly requested Gemini 3
-        powerful: 'models/gemini-3-pro-preview'
+        default: 'models/gemini-2.5-flash', // REVERT: Gemini 3 had 0 quota. 2.5 Flash is verified available.
+        powerful: 'models/gemini-2.5-pro'
     }
 };
 
