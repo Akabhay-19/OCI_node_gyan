@@ -20,7 +20,7 @@ export function handleGeminiStream(wss, req) {
     // Use the user-specified native audio preview model
     const model = 'gemini-2.5-flash-native-audio-preview-12-2025';
     const host = 'generativelanguage.googleapis.com';
-    const path = `/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
+    const path = `/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`;
     const uri = `wss://${host}${path}`;
 
     wss.handleUpgrade(req, req.socket, Buffer.alloc(0), (ws) => {
