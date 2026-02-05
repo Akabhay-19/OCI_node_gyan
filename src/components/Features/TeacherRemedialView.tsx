@@ -42,7 +42,7 @@ export const TeacherRemedialView: React.FC<TeacherRemedialViewProps> = ({ gap, s
                 topicToLearn = gap.topic;
             }
 
-            const data = await api.generateRemedialContent(topicToLearn, gradeLevel, gap.subject);
+            const data = await api.generateRemedialContent(gap.topic, gap.subTopic || "General", gradeLevel, gap.subject);
             setPreviewContent(data);
         } catch (error) {
             console.error("Failed to generate preview:", error);

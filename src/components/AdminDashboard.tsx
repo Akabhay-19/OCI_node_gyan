@@ -26,6 +26,7 @@ interface AdminDashboardProps {
     onLockAllClasses?: () => void;
     onAddStudent?: (student: Partial<Student>, classId: string) => void;
     onArchiveClass?: (classId: string) => void;
+    onRestoreClass?: (classId: string) => void;
     onRenameClass?: (classId: string, newSectionName: string) => void;
     activeTab?: string;
     onTabChange?: (tab: string) => void;
@@ -910,7 +911,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             if (cls) {
                                                                 // Navigate to CLASSES tab and open the student's section
                                                                 setStudentSearchQuery('');
-                                                                setActiveTab('CLASSES');
+                                                                handleTabChange('CLASSES');
                                                                 // Extract grade from class name (e.g., "Grade 5 - Section A" → "Grade 5")
                                                                 const grade = cls.name.split(' - ')[0].trim();
                                                                 setSelectedGrade(grade);
@@ -1260,7 +1261,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <h2 className="text-2xl font-bold text-white">Class Management</h2>
                                     <NeonButton
                                         size="sm"
-                                        variant="outline"
+                                        variant="secondary"
                                         onClick={() => setShowArchived(true)}
                                         className="flex items-center gap-2"
                                     >

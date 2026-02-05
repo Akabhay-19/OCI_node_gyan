@@ -1626,7 +1626,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         // 1. Update Local State
                         const updatedHistory = (student.weaknessHistory || []).map(w => {
                             if (w.id === gapId) {
-                                return { ...w, status: 'RESOLVED', resolvedAt: new Date().toISOString(), remedialData: data };
+                                return { ...w, status: 'RESOLVED' as const, remedialData: data, remedialCompleted: true };
                             }
                             return w;
                         });

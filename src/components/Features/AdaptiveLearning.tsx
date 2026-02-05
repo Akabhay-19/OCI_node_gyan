@@ -141,11 +141,7 @@ export const AdaptiveLearning: React.FC<AdaptiveLearningProps> = ({ onStartVoice
                     const response = await api.generateQuiz(
                         topic,
                         gradeLevel,
-                        5, // Keep usage low for auto-gen, or match UI? Let's use 5 for quick check or 20 per requirement? 
-                        // User asked for 20-30 range broadly, but for quick immediate access, maybe 10? 
-                        // Stick to 20 as per previous constraint? 
-                        // Let's stick to 20 to be consistent with "Question Count" task.
-                        20,
+                        5,
                         currentUser.id,
                         difficulty,
                         contextClass?.id
@@ -424,7 +420,7 @@ export const AdaptiveLearning: React.FC<AdaptiveLearningProps> = ({ onStartVoice
                     <div className="animate-in fade-in zoom-in-95 duration-500">
                         <VoiceTutor
                             onClose={() => setMode('PLANNER')}
-                            contextClass={contextClass ? { grade: contextClass.grade, subject: contextClass.subject } : undefined}
+                            contextClass={contextClass ? { grade: contextClass.grade || 'Grade 10', subject: contextClass.subject || 'General' } : undefined}
                         />
                     </div>
                 )}

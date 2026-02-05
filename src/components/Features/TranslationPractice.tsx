@@ -161,7 +161,7 @@ export const TranslationPractice: React.FC<TranslationPracticeProps> = ({ topic,
                 topic: "English Translation",
                 subTopic: `${topic} - ${adaptiveMode ? 'Adaptive' : 'Practice'}`, // e.g. "Tenses - Practice"
                 score: percentage,
-                timestamp: new Date().toISOString(),
+                detectedAt: new Date().toISOString(),
                 status: 'OPEN',
                 subject: 'English',
                 remedialCompleted: false

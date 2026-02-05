@@ -166,7 +166,7 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, initialR
                             onClick={handleResetPassword}
                             className="w-full"
                             glow
-                            variant="action"
+                            variant="primary"
                             disabled={loading}
                         >
                             {loading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}

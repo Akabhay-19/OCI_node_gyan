@@ -571,7 +571,7 @@ export const TeacherContentHub: React.FC<{ currentUser?: any; schoolName?: strin
                     <div className="flex justify-center mt-12">
                         <NeonButton
                             size="lg"
-                            glowColor="pink"
+                            glow
                             onClick={handleGeneratePresentation}
                             disabled={isGenerating || !topic || !subject}
                             className="px-12 py-6 text-xl"
@@ -618,6 +618,7 @@ export const TeacherContentHub: React.FC<{ currentUser?: any; schoolName?: strin
                                         }`}
                                 >
                                     <div className="text-[10px] text-gray-500 mb-1">Slide {idx + 1}</div>
+                                    <div className="flex gap-1">{/* Badges removed as not in Student type yet */}</div>
                                     <div className="text-xs font-bold text-white truncate">{slide.title}</div>
                                 </div>
                             ))}

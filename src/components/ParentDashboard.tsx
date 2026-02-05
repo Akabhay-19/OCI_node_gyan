@@ -278,7 +278,7 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({ schoolName, on
                     <div className="text-xs text-gray-400 uppercase tracking-wider">Avg Score</div>
                   </div>
                   <div className="bg-black/20 rounded-xl p-4 text-center border border-white/5 hover:border-yellow-500/30 transition-colors">
-                    <div className="text-3xl font-bold text-yellow-400 mb-1">{selectedStudent.badges?.length || 0}</div>
+                    <div className="text-3xl font-bold text-yellow-400 mb-1">0</div>
                     <div className="text-xs text-gray-400 uppercase tracking-wider">Badges</div>
                   </div>
                   <div className="bg-black/20 rounded-xl p-4 text-center border border-white/5 hover:border-pink-500/30 transition-colors">
