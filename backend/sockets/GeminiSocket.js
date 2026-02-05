@@ -36,11 +36,12 @@ export function handleGeminiStream(wss, req) {
             console.log("[GeminiProxy] Connected to Google Gemini!");
 
             // Send Initial Setup Message (Config)
+            // Send Initial Setup Message (Config)
             const setupMsg = {
                 setup: {
                     model: `models/${model}`,
-                    generationConfig: {
-                        responseModalities: ["AUDIO"]
+                    generation_config: {
+                        response_modalities: ["AUDIO"]
                     }
                 }
             };
