@@ -2499,6 +2499,22 @@ app.get('/api/dev/stats', async (req, res) => {
   }
 });
 
+// Public Schools List for Join Flow
+app.get('/api/schools', async (req, res) => {
+  try {
+    // Return inviteCode so client can match locally (as per current design)
+    const { data, error } = await supabase
+      .from('schools')
+      .select('id, name, inviteCode, type, region, tier');
+
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    console.error("Fetch Schools Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/dev/schools', async (req, res) => {
   try {
     const { data: schools, error } = await supabase.from('schools').select('*');
