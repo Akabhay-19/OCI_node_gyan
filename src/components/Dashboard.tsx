@@ -89,6 +89,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             onLockAllClasses={onLockAllClasses}
             onArchiveClass={onArchiveClass}
             onRestoreClass={onRestoreClass}
+            onUpdateStudent={onUpdateStudent}
             activeTab={activeTab}
             onTabChange={onTabChange}
         />;

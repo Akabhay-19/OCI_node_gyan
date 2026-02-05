@@ -29,6 +29,7 @@ interface AdminDashboardProps {
     onArchiveClass?: (classId: string) => void;
     onRestoreClass?: (classId: string) => void;
     onRenameClass?: (classId: string, newSectionName: string) => void;
+    onUpdateStudent?: (student: Student) => void;
     activeTab?: string;
     onTabChange?: (tab: string) => void;
 }
@@ -1107,27 +1108,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     ) : filteredStudents.map(student => (
                                         <div
                                             key={student.id}
-                                            className="p-4 border-b border-white/5 flex items-center justify-between hover:bg-white/10 cursor-pointer transition-colors"
-                                            onClick={() => setShowStudentAnalytics(student)}
+                                            className="p-4 border-b border-white/5 flex items-center justify-between hover:bg-white/10 transition-colors"
                                         >
-                                            <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-4 cursor-pointer" onClick={() => setShowStudentAnalytics(student)}>
                                                 <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold">
                                                     {student.name?.charAt(0) || 'S'}
                                                 </div>
                                                 <div>
                                                     <p className="text-white font-bold">{student.name}</p>
                                                     <p className="text-xs text-gray-400">
-                                                        Roll: {student.rollNumber || 'N/A'} {isUnassignedView ? '• Needs Class Assignment' : ''}
+                                                        Roll: {student.rollNumber || 'N/A'} {student.grade ? `• ${student.grade}` : ''}
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-4">
-                                                <span className="text-sm text-gray-400">Score: {student.avgScore}%</span>
-                                                <span className={`px-2 py-1 rounded text-xs ${student.status === 'At Risk' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
-                                                    {student.status}
-                                                </span>
-                                                <ChevronRight className="w-4 h-4 text-gray-500" />
-                                            </div>
+
+                                            {/* Assignment Action (Only in Unassigned View) */}
+                                            {isUnassignedView && onUpdateStudent ? (
+                                                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                    <select
+                                                        className="bg-black/40 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-cyan-500"
+                                                        onChange={(e) => {
+                                                            const selectedClassId = e.target.value;
+                                                            if (!selectedClassId) return;
+                                                            if (window.confirm(`Assign ${student.name} to this class?`)) {
+                                                                const studentToUpdate: Student = {
+                                                                    ...student,
+                                                                    classId: selectedClassId,
+                                                                    classIds: [selectedClassId]
+                                                                };
+                                                                onUpdateStudent(studentToUpdate);
+                                                            }
+                                                            e.target.value = ""; // Reset
+                                                        }}
+                                                        defaultValue=""
+                                                    >
+                                                        <option value="" disabled>Assign Class</option>
+                                                        {(() => {
+                                                            // Filter classes: Active, and if student has grade, match it
+                                                            // Logic: If student.grade is "Grade 10", show classes that start with "Grade 10"
+                                                            // Or show all if no grade metadata
+                                                            const validClasses = classrooms.filter(c =>
+                                                                c.status !== 'ARCHIVED' &&
+                                                                (!student.grade || c.name.startsWith(student.grade))
+                                                            );
+                                                            return validClasses.length > 0
+                                                                ? validClasses.map(c => (
+                                                                    <option key={c.id} value={c.id}>
+                                                                        {c.name} - Sec {c.section}
+                                                                    </option>
+                                                                ))
+                                                                : <option disabled>No matching classes</option>;
+                                                        })()}
+                                                    </select>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-4">
+                                                    <span className="text-sm text-gray-400">Score: {student.avgScore}%</span>
+                                                    <span className={`px-2 py-1 rounded text-xs ${student.status === 'At Risk' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                                                        {student.status}
+                                                    </span>
+                                                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
