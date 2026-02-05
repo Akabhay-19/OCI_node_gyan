@@ -603,13 +603,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 <div className="flex gap-4 mb-8 border-b border-white/10 pb-4 flex-wrap">
-                    {['OVERVIEW', 'TEACHERS', 'STUDENTS', 'MANAGE CLASSES', 'RESOURCES', 'ATTENDANCE', 'LEADERBOARD', 'ANNOUNCEMENTS', 'SETTINGS'].map(tab => (
+                    {[
+                        { id: 'OVERVIEW', label: 'OVERVIEW' },
+                        { id: 'TEACHERS', label: 'TEACHERS' },
+                        { id: 'STUDENTS', label: 'STUDENTS' },
+                        { id: 'CLASSES', label: 'MANAGE CLASSES' },
+                        { id: 'RESOURCES', label: 'RESOURCES' },
+                        { id: 'ATTENDANCE', label: 'ATTENDANCE' },
+                        { id: 'LEADERBOARD', label: 'LEADERBOARD' },
+                        { id: 'ANNOUNCEMENTS', label: 'ANNOUNCEMENTS' },
+                        { id: 'SETTINGS', label: 'SETTINGS' }
+                    ].map(tab => (
                         <button
-                            key={tab}
-                            onClick={() => handleTabChange(tab)}
-                            className={`pb-4 px-4 text-sm font-bold transition-all border-b-2 ${activeTab === tab ? 'text-neon-cyan border-neon-cyan' : 'text-gray-400 border-transparent hover:text-white'}`}
+                            key={tab.id}
+                            onClick={() => handleTabChange(tab.id)}
+                            className={`pb-4 px-4 text-sm font-bold transition-all border-b-2 ${activeTab === tab.id ? 'text-neon-cyan border-neon-cyan' : 'text-gray-400 border-transparent hover:text-white'}`}
                         >
-                            {tab}
+                            {tab.label}
                         </button>
                     ))}
                 </div>
@@ -1091,7 +1101,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 })()}
 
                 {/* MANAGE CLASSES TAB - Grade Hierarchy */}
-                {activeTab === 'MANAGE CLASSES' && (() => {
+                {activeTab === 'CLASSES' && (() => {
                     // Helper to get ACTIVE classes for a grade (exclude archived)
                     const getClassesForGrade = (grade: string) => {
                         const activeClassrooms = classrooms.filter(c => c.status !== 'ARCHIVED');
@@ -1728,97 +1738,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
 
                 {/* MANAGE CLASSES TAB (Admin Only - Lock/Unlock) */}
-                {activeTab === 'MANAGE CLASSES' && (
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-2xl font-bold text-white">Manage Classes</h2>
-                            <div className="flex items-center gap-4">
-                                <div className="flex gap-2 text-sm">
-                                    <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded flex items-center gap-1">
-                                        <Unlock className="w-3 h-3" /> Active: {classrooms.filter(c => c.status !== 'LOCKED').length}
-                                    </span>
-                                    <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded flex items-center gap-1">
-                                        <Lock className="w-3 h-3" /> Locked: {classrooms.filter(c => c.status === 'LOCKED').length}
-                                    </span>
-                                </div>
-                                {/* Lock All Button */}
-                                <NeonButton
-                                    variant="danger"
-                                    onClick={() => {
-                                        if (!window.confirm('Are you sure you want to lock ALL classes? Students will not be able to join.')) return;
-                                        if (onLockAllClasses) onLockAllClasses();
-                                    }}
-                                    className="flex items-center gap-2"
-                                >
-                                    <Lock className="w-4 h-4" />
-                                    Lock All Classes
-                                </NeonButton>
-                            </div>
-                        </div>
-                        <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-                            <div className="grid grid-cols-5 gap-4 p-3 bg-white/5 text-xs text-gray-400 uppercase tracking-wider border-b border-white/10">
-                                <div>Class Name</div>
-                                <div>Section</div>
-                                <div>Students</div>
-                                <div>Status</div>
-                                <div>Actions</div>
-                            </div>
-                            {classrooms.length === 0 ? (
-                                <div className="p-8 text-center text-gray-500">No classes created yet</div>
-                            ) : classrooms.map(c => (
-                                <div key={c.id} className={`grid grid-cols-5 gap-4 p-4 border-b border-white/5 hover:bg-white/5 transition-all ${c.status === 'LOCKED' ? 'opacity-60 bg-red-500/5' : ''}`}>
-                                    <div className="text-white font-medium flex items-center gap-2">
-                                        {c.status === 'LOCKED' ? (
-                                            <Lock className="w-4 h-4 text-red-400 animate-pulse" />
-                                        ) : (
-                                            <Unlock className="w-4 h-4 text-green-400" />
-                                        )}
-                                        {c.name}
-                                    </div>
-                                    <div className="text-gray-400">{c.section}</div>
-                                    <div className="text-gray-400">{students.filter(s => s.classId === c.id).length}</div>
-                                    <div>
-                                        <span className={`px-2 py-1 rounded text-xs flex items-center gap-1 w-fit ${c.status === 'LOCKED' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
-                                            {c.status === 'LOCKED' ? (
-                                                <><Lock className="w-3 h-3" /> Locked</>
-                                            ) : (
-                                                <><Unlock className="w-3 h-3" /> Active</>
-                                            )}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <button
-                                            onClick={() => {
-                                                const newLocked = c.status !== 'LOCKED';
-                                                if (onToggleClassLock) onToggleClassLock(c.id, newLocked);
-                                            }}
-                                            className={`px-3 py-1.5 rounded text-xs font-bold transition-all flex items-center gap-1.5 ${c.status === 'LOCKED' ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'}`}
-                                            title={c.status === 'LOCKED' ? "Unlock Class" : "Lock Class"}
-                                        >
-                                            {c.status === 'LOCKED' ? (
-                                                <><Unlock className="w-3.5 h-3.5" /> Unlock</>
-                                            ) : (
-                                                <><Lock className="w-3.5 h-3.5" /> Lock</>
-                                            )}
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (window.confirm(`⚠️ DELETE CLASS\n\nAre you sure you want to delete "${c.name}"?\n\nThis class will be moved to Archive and permanently deleted after 7 days if not restored.`)) {
-                                                    if (onArchiveClass) onArchiveClass(c.id);
-                                                }
-                                            }}
-                                            className="px-3 py-1.5 rounded text-xs font-bold transition-all flex items-center gap-1.5 bg-red-600/20 text-red-500 hover:bg-red-600/40 ml-2"
-                                            title="Delete Class"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" /> Delete
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                {/* MANAGE CLASSES TAB (Legacy block merged into CLASSES tab above) */}
 
                 {/* RESOURCES TAB (File Offerings) */}
                 {
