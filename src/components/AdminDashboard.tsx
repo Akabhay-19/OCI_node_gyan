@@ -5,7 +5,8 @@ import { NeonCard, NeonButton, Input } from './UIComponents';
 import {
     Users, BookOpen, Calendar, Settings, Folder, FileText, ChevronRight, ArrowLeft,
     UserCircle, School, Plus, BarChart2, Clock, CheckCircle, Megaphone, Copy,
-    Trash2, Lock, Unlock, UserPlus, Search, RotateCcw, Award, Star, Medal
+    Trash2, Lock, Unlock, UserPlus, Search, RotateCcw, Award, Star, Medal,
+    AlertTriangle, ArrowRight
 } from 'lucide-react';
 import { AttendanceView } from './Features/AttendanceView';
 import { AssignClassesModal } from './AssignClassesModal';
