@@ -844,9 +844,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         });
                     };
 
-                    const studentsToShow = studentViewClassId
-                        ? students.filter(s => s.classId === studentViewClassId)
-                        : [];
+                    // Identify Unassigned Students
+                    const unassignedStudents = students.filter(s => !s.classId && (!s.classIds || s.classIds.length === 0));
+
+                    const studentsToShow = studentViewClassId === 'UNASSIGNED'
+                        ? unassignedStudents
+                        : studentViewClassId
+                            ? students.filter(s => s.classId === studentViewClassId)
+                            : [];
 
                     // Filter by search query
                     const filteredStudents = studentsToShow.filter(s => {
@@ -859,7 +864,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     const currentSectionData = classrooms.find(c => c.id === studentViewClassId);
 
                     // GRADES VIEW (with global search)
-                    if (!studentViewGrade) {
+                    if (!studentViewGrade && !studentViewClassId) {
                         const GradeCard = ({ grade, color }: { grade: string, color: string }) => {
                             const count = getClassesForGrade(grade).length;
                             const studentCount = students.filter(s => getClassesForGrade(grade).some(c => c.id === s.classId)).length;
@@ -899,6 +904,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         />
                                     </div>
                                 </div>
+
+                                {/* Unassigned Students Alert */}
+                                {unassignedStudents.length > 0 && !studentSearchQuery && (
+                                    <NeonCard
+                                        glowColor="red"
+                                        className="p-4 flex items-center justify-between cursor-pointer border-red-500/30 hover:bg-red-500/5 transition-all"
+                                        onClick={() => setStudentViewClassId('UNASSIGNED')}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center text-red-500 animate-pulse">
+                                                <AlertTriangle className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-white">Action Required: Unassigned Students</h3>
+                                                <p className="text-red-300">
+                                                    There are {unassignedStudents.length} students who have not joined any class yet.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-red-400 font-bold">
+                                            View List <ArrowRight className="w-4 h-4" />
+                                        </div>
+                                    </NeonCard>
+                                )}
 
                                 {/* Show search results if searching */}
                                 {studentSearchQuery && (
@@ -1038,8 +1067,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         );
                     }
 
-                    // STUDENT LIST VIEW
-                    if (studentViewClassId && currentSectionData) {
+                    // STUDENT LIST VIEW (Specific Section OR Unassigned)
+                    if (studentViewClassId) {
+                        const isUnassignedView = studentViewClassId === 'UNASSIGNED';
+                        const viewTitle = isUnassignedView ? 'Unassigned Students' : `${currentSectionData?.name} - Section ${currentSectionData?.section}`;
+
                         return (
                             <div className="space-y-6 animate-fade-in">
                                 <div className="flex items-center justify-between">
@@ -1047,7 +1079,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <button onClick={() => setStudentViewClassId('')} className="p-2 hover:bg-white/10 rounded-full">
                                             <ArrowLeft className="w-5 h-5 text-white" />
                                         </button>
-                                        <h2 className="text-2xl font-bold text-white">{currentSectionData.name} - Section {currentSectionData.section}</h2>
+                                        <h2 className={`text-2xl font-bold ${isUnassignedView ? 'text-red-400' : 'text-white'}`}>
+                                            {isUnassignedView && <AlertTriangle className="w-6 h-6 inline mr-2" />}
+                                            {viewTitle}
+                                        </h2>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
@@ -1066,7 +1101,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden max-h-[500px] overflow-y-auto">
                                     {filteredStudents.length === 0 ? (
                                         <div className="p-12 text-center text-gray-500">
-                                            {studentSearchQuery ? 'No students match your search' : 'No students in this section'}
+                                            {studentSearchQuery ? 'No students match your search' : 'No students found'}
                                         </div>
                                     ) : filteredStudents.map(student => (
                                         <div
@@ -1080,7 +1115,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </div>
                                                 <div>
                                                     <p className="text-white font-bold">{student.name}</p>
-                                                    <p className="text-xs text-gray-400">Roll: {student.rollNumber || 'N/A'}</p>
+                                                    <p className="text-xs text-gray-400">
+                                                        Roll: {student.rollNumber || 'N/A'} {isUnassignedView ? '• Needs Class Assignment' : ''}
+                                                    </p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4">
