@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { calculateLevel } from '../../services/gamification';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -37,6 +38,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ studentId, initialQuiz, init
   const [isFlagging, setIsFlagging] = useState(false);
   const [flagText, setFlagText] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const startTimeRef = useRef<number>(Date.now());
 
   React.useEffect(() => {
     if (initialQuiz && initialQuiz.length > 0) {
@@ -62,6 +64,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ studentId, initialQuiz, init
     setScore(0);
     setCurrentIndex(0);
     setFlaggedQuestions({});
+    startTimeRef.current = Date.now();
     setAllUserAnswers([]);
 
     try {
@@ -142,75 +145,54 @@ export const QuizMode: React.FC<QuizModeProps> = ({ studentId, initialQuiz, init
       quizHistory.push(newEntry);
       localStorage.setItem('GYAN_QUIZ_HISTORY', JSON.stringify(quizHistory));
 
-      if (percentage < 0.65 && currentUser && onUpdateStudent) {
-        // [NEW] Intelligent Gap Analysis
-        console.log('[Gap Detection] Quiz score below 65%:', percentage, 'Triggering gap analysis...');
+      if (currentUser && onUpdateStudent) {
+        // [UPDATED] Submit to Patent-Ready Adaptive Engine
         (async () => {
-          try {
-            const answersToAnalyze = questions.map((_, i) => allUserAnswers[i] ?? -1);
-            console.log('[Gap Detection] Analyzing quiz with', questions.length, 'questions');
-            const weakConcepts = await api.analyzeQuizResults(config.topic, questions, answersToAnalyze);
-            console.log('[Gap Detection] AI identified', weakConcepts.length, 'weak concepts:', weakConcepts);
+          const timeTaken = (Date.now() - startTimeRef.current) / 1000;
+          const idealTime = (questions.length * 60) || 600;
 
-            if (weakConcepts.length > 0) {
-              const newGaps: WeaknessRecord[] = weakConcepts.map((concept: string) => ({
-                id: `GAP-${Date.now()}-${Math.random()}`,
-                topic: config.topic || 'Quiz Topic',
-                subject: contextClass?.subject || 'General',
-                subTopic: concept, // Specific atomic concept identified by AI
-                source: 'PRACTICE',
-                classId: contextClass?.id,
-                detectedAt: new Date().toISOString(),
-                status: 'OPEN',
-                score: percentage * 100,
-                remedialCompleted: false
+          let detectedGaps: any[] = [];
+          // Only run heavy analysis if score is below threshold (70%)
+          if (percentage < 0.7) {
+            try {
+              console.log('[Gap Detection] Analyzing specifics...');
+              const answersToAnalyze = questions.map((_, i) => allUserAnswers[i] ?? -1);
+              const weakConcepts = await api.analyzeQuizResults(config.topic, questions, answersToAnalyze);
+              detectedGaps = weakConcepts.map((concept: string) => ({
+                topic: config.topic,
+                subTopic: concept,
+                gapType: 'KNOWLEDGE',
+                severity: 'HIGH',
+                atomicTopic: concept
               }));
+            } catch (e) { console.error("Analysis failed:", e); }
+          }
 
-              console.log('[Gap Detection] Created potential new gap records:', newGaps);
+          try {
+            await api.submitQuizResult({
+              studentId: currentUser.id,
+              topic: config.topic,
+              score,
+              totalQuestions: questions.length,
+              timeTaken,
+              idealTime,
+              sentiment: 'NEUTRAL',
+              gaps: detectedGaps,
+              classId: contextClass?.id
+            });
 
-              const currentHistory = currentUser.weaknessHistory || [];
-              let gapsUpdated = false;
-              const uniqueNewGaps: WeaknessRecord[] = [];
+            // Optimistic Local Update
+            onUpdateStudent({
+              ...currentUser,
+              xp: (currentUser.xp || 0) + xpEarned,
+              level: calculateLevel((currentUser.xp || 0) + xpEarned),
+              // We don't update weaknessHistory locally in detail, waiting for fetch/refresh
+            });
 
-              newGaps.forEach(newGap => {
-                const existingIndex = currentHistory.findIndex(existing =>
-                  existing.status === 'OPEN' &&
-                  existing.topic === newGap.topic &&
-                  existing.subTopic === newGap.subTopic
-                );
-
-                if (existingIndex !== -1) {
-                  // Update existing gap
-                  console.log(`[Gap Detection] Updating existing gap: ${newGap.subTopic}`);
-                  currentHistory[existingIndex].detectedAt = newGap.detectedAt;
-                  currentHistory[existingIndex].score = newGap.score;
-                  gapsUpdated = true;
-                } else {
-                  uniqueNewGaps.push(newGap);
-                }
-              });
-
-              if (uniqueNewGaps.length > 0 || gapsUpdated) {
-                const updatedStudent = {
-                  ...currentUser,
-                  weaknessHistory: [...currentHistory, ...uniqueNewGaps]
-                };
-                console.log('[Gap Detection] Updating student with new total gaps:', updatedStudent.weaknessHistory.length);
-                onUpdateStudent(updatedStudent);
-                api.updateStudent(updatedStudent).catch(err => console.error("[Gap Detection] ❌ Failed to save gaps to backend:", err));
-              } else {
-                console.log('[Gap Detection] No new unique gaps or updates required.');
-              }
-
-            } else {
-              console.log('[Gap Detection] ⚠️ No weak concepts identified by AI despite low score.');
-            }
-          } catch (err) {
-            console.error("[Gap Detection] ❌ Failed to analyze gaps:", err);
+          } catch (e) {
+            console.error("Submission failed:", e);
           }
         })();
-      } else {
-        console.log('[Gap Detection] Skipped - Score:', percentage, 'User:', !!currentUser, 'UpdateFn:', !!onUpdateStudent);
       }
     }
   }, [showResult, score, questions.length, config.topic, currentUser, onUpdateStudent, contextClass, flaggedQuestions]);

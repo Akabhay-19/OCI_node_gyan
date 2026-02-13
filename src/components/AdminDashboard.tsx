@@ -287,7 +287,7 @@ const AdminLeaderboardManager: React.FC<{ students: Student[], classrooms: Class
 };
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
-    schoolName, schoolProfile, students, classrooms, announcements = [], onLogout, currentUser, onUpdateTeacher, onPostAnnouncement, onCreateClass, onToggleClassLock, onLockAllClasses, onAddStudent, onArchiveClass, onRestoreClass, onRenameClass, activeTab: propActiveTab, onTabChange
+    schoolName, schoolProfile, students, classrooms, announcements = [], onLogout, currentUser, onUpdateTeacher, onPostAnnouncement, onCreateClass, onToggleClassLock, onLockAllClasses, onAddStudent, onArchiveClass, onRestoreClass, onRenameClass, onUpdateStudent, activeTab: propActiveTab, onTabChange
 }) => {
     const [localActiveTab, setLocalActiveTab] = useState('OVERVIEW');
     const activeTab = propActiveTab || localActiveTab;

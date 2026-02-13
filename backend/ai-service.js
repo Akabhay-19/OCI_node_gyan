@@ -9,7 +9,7 @@
  * - Meta: llama-3.1-405b, llama-3.1-70b
  */
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
+// Load environment variables immediately
 dotenv.config({ path: path.join(__dirname, '../.env.local') });
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
@@ -29,22 +29,22 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API
 // Model configurations
 const MODELS = {
     openrouter: {
-        default: process.env.OPENROUTER_DEFAULT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
+        default: process.env.OPENROUTER_DEFAULT_MODEL || 'google/gemini-2.0-flash-lite-preview-02-05:free',
         fast: 'openai/gpt-3.5-turbo',
         powerful: 'openai/gpt-4o',
         claude: 'anthropic/claude-3.5-sonnet',
-        gemini: 'google/gemini-2.5-flash'
+        gemini: 'google/gemini-2.0-flash-lite-preview-02-05:free'
     },
     gemini: {
-        default: 'models/gemini-2.5-flash', // REVERT: Gemini 3 had 0 quota. 2.5 Flash is verified available.
-        powerful: 'models/gemini-2.5-pro'
+        default: 'gemini-flash-latest',
+        powerful: 'gemini-pro-latest'
     }
 };
 
 // Initialize Gemini client (for fallback)
 let geminiClient = null;
 if (GEMINI_API_KEY) {
-    geminiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    geminiClient = new GoogleGenerativeAI(GEMINI_API_KEY);
 }
 
 /**
@@ -97,27 +97,20 @@ async function generateWithGemini(prompt, options = {}) {
     }
 
     const modelName = options.model || MODELS.gemini.default;
-    const config = options.json ? {
-        responseMimeType: "application/json",
-    } : {};
+    // Configure generation options
+    const config = {};
+    if (options.temperature) config.temperature = options.temperature;
+    if (options.maxTokens) config.maxOutputTokens = options.maxTokens;
+    if (options.json) config.responseMimeType = "application/json";
 
     try {
-        const response = await geminiClient.models.generateContent({
-            model: modelName,
-            contents: prompt,
-            config
+        const model = geminiClient.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: config
         });
-
-        // Robust handling for different SDK versions (@google/genai vs @google/generative-ai)
-        let responseText = '';
-        if (typeof response.text === 'function') {
-            responseText = response.text();
-        } else if (response.text) {
-            responseText = response.text;
-        } else if (response.candidates && response.candidates[0] && response.candidates[0].content) {
-            // Fallback for raw candidate access
-            responseText = response.candidates[0].content.parts[0].text;
-        }
+        const response = await result.response;
+        const responseText = response.text();
 
         return {
             text: responseText,
@@ -175,12 +168,14 @@ async function chatWithOpenRouter(messages, options = {}) {
  * Main AI generation function with automatic fallback
  */
 async function generate(prompt, options = {}) {
-    const preferredProvider = options.provider || AI_PROVIDER;
+    // Force lowercase provider matching
+    const requestedProvider = (options.provider || AI_PROVIDER || 'gemini').toLowerCase();
+    console.log(`[AI Service] Generating with preferred provider: ${requestedProvider}`);
 
     try {
-        if (preferredProvider === 'openrouter' && OPENROUTER_API_KEY) {
+        if (requestedProvider === 'openrouter' && OPENROUTER_API_KEY) {
             return await generateWithOpenRouter(prompt, options);
-        } else if (preferredProvider === 'gemini' && GEMINI_API_KEY) {
+        } else if (requestedProvider === 'gemini' && GEMINI_API_KEY) {
             return await generateWithGemini(prompt, options);
         } else if (OPENROUTER_API_KEY) {
             return await generateWithOpenRouter(prompt, options);
@@ -190,20 +185,57 @@ async function generate(prompt, options = {}) {
             throw new Error('No AI provider configured. Set OPENROUTER_API_KEY or GEMINI_API_KEY');
         }
     } catch (error) {
-        console.warn(`Primary AI (${preferredProvider}) failed: ${error.message}`);
+        console.warn(`Primary AI (${requestedProvider}) failed: ${error.message}`);
         const primaryError = error.message;
+
+        // RETRY LOGIC for Gemini 503
+        if (requestedProvider === 'gemini' && (error.message.includes('503') || error.message.includes('overloaded'))) {
+            console.log("Gemini overloaded. Retrying in 2s...");
+            await new Promise(r => setTimeout(r, 2000));
+            try {
+                return await generateWithGemini(prompt, options);
+            } catch (retryErr) {
+                console.error("Gemini Retry Failed:", retryErr.message);
+            }
+        }
 
         // Fallback logic
         try {
-            if (preferredProvider === 'openrouter' && GEMINI_API_KEY) {
+            if (requestedProvider === 'openrouter' && GEMINI_API_KEY) {
                 console.log('Falling back to Gemini...');
                 return await generateWithGemini(prompt, { ...options, model: MODELS.gemini.default });
-            } else if (preferredProvider === 'gemini' && OPENROUTER_API_KEY) {
+            } else if (requestedProvider === 'gemini' && OPENROUTER_API_KEY) {
                 console.log('Falling back to OpenRouter...');
-                return await generateWithOpenRouter(prompt, options);
+
+                // User preferred initial model
+                const initialModel = 'google/gemini-2.0-flash-lite-preview-02-05:free';
+                try {
+                    console.log(`[OpenRouter] Trying initial model: ${initialModel}`);
+                    return await generateWithOpenRouter(prompt, { ...options, model: initialModel });
+                } catch (e) {
+                    console.warn(`[OpenRouter] Initial model ${initialModel} failed: ${e.message}`);
+                }
+
+                // Fallback list if initial fails
+                const fallbacks = [
+                    'google/gemini-flash-1.5',
+                    'google/gemini-pro',
+                    'mistralai/mistral-7b-instruct:free',
+                    'openai/gpt-3.5-turbo'
+                ];
+
+                for (const model of fallbacks) {
+                    try {
+                        console.log(`[OpenRouter] Trying fallback model: ${model}`);
+                        return await generateWithOpenRouter(prompt, { ...options, model });
+                    } catch (e) {
+                        console.warn(`[OpenRouter] Fallback ${model} failed: ${e.message}`);
+                    }
+                }
+                throw new Error("All OpenRouter fallbacks failed.");
             }
         } catch (fallbackError) {
-            throw new Error(`Primary AI (${preferredProvider}) failed: ${primaryError}. Fallback also failed: ${fallbackError.message}`);
+            throw new Error(`Primary AI (${requestedProvider}) failed: ${primaryError}. Fallback also failed: ${fallbackError.message}`);
         }
 
         throw error; // If no fallback was attempted
@@ -223,17 +255,18 @@ async function chat(messages, options = {}) {
             return await chatWithOpenRouter(messages, options);
         } else if (GEMINI_API_KEY) {
             // Fallback to Gemini chat
-            const geminiChat = geminiClient.chats.create({
-                model: MODELS.gemini.default,
+            const model = geminiClient.getGenerativeModel({ model: MODELS.gemini.default });
+            const chatSession = model.startChat({
                 history: messages.slice(0, -1).map(msg => ({
-                    role: msg.role === 'ai' ? 'model' : 'user',
+                    role: msg.role === 'ai' || msg.role === 'model' ? 'model' : 'user',
                     parts: [{ text: msg.text || msg.content }]
                 }))
             });
             const lastMessage = messages[messages.length - 1];
-            const result = await geminiChat.sendMessage(lastMessage.text || lastMessage.content);
+            const result = await chatSession.sendMessage(lastMessage.text || lastMessage.content);
+            const response = await result.response;
             return {
-                text: result.response.text,
+                text: response.text(),
                 model: MODELS.gemini.default,
                 provider: 'gemini'
             };
@@ -303,8 +336,7 @@ export {
     chatWithOpenRouter,
     getAvailableModels,
     getStatus,
-    MODELS,
-    Type
+    MODELS
 };
 
 export default {

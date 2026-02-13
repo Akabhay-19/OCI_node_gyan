@@ -3,12 +3,14 @@ import { CardProps, ButtonProps } from '../types';
 import { Loader2 } from 'lucide-react';
 
 export const NeonCard: React.FC<CardProps & React.HTMLAttributes<HTMLDivElement>> = ({ children, className = '', glowColor = 'cyan', hoverEffect = false, ...props }) => {
-  const borderClass = glowColor === 'purple' ? 'group-hover:border-neon-purple/50' : 'group-hover:border-neon-cyan/50';
-  const shadowClass = glowColor === 'purple' ? 'hover:shadow-[0_0_30px_rgba(188,19,254,0.3)]' : 'hover:shadow-[0_0_30px_rgba(0,243,255,0.3)]';
+  const borderClass = glowColor === 'orange' ? 'group-hover:border-signal-orange/50' : 'group-hover:border-neon-cyan/50';
+  const shadowClass = glowColor === 'orange' ? 'hover:shadow-[0_0_30px_rgba(255,95,31,0.3)]' : 'hover:shadow-[0_0_30px_rgba(0,243,255,0.3)]';
+
+  const gradientFrom = glowColor === 'cyan' ? 'cyan-400' : glowColor === 'orange' ? 'orange-500' : 'blue-500';
 
   return (
     <div className={`glass-panel rounded-xl p-6 transition-all duration-300 relative overflow-hidden group border border-white/10 ${hoverEffect ? `hover:-translate-y-2 ${shadowClass} ${borderClass}` : ''} ${className}`} {...props}>
-      <div className={`absolute inset-0 opacity-0 ${hoverEffect ? 'group-hover:opacity-10' : ''} transition-opacity duration-500 bg-gradient-to-br from-${glowColor === 'cyan' ? 'cyan-400' : 'purple-500'} to-transparent pointer-events-none`} />
+      <div className={`absolute inset-0 opacity-0 ${hoverEffect ? 'group-hover:opacity-10' : ''} transition-opacity duration-500 bg-gradient-to-br from-${gradientFrom} to-transparent pointer-events-none`} />
       <div className="relative z-10 h-full">{children}</div>
     </div>
   );
@@ -52,12 +54,13 @@ export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { lab
 };
 
 export const NeonTag: React.FC<{ label: string; color: 'cyan' | 'purple' | 'blue' | 'red' | 'green' }> = ({ label, color }) => {
-  const colorStyles = {
+  const colorStyles: Record<string, string> = {
     cyan: 'bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30',
-    purple: 'bg-neon-purple/20 text-neon-purple border-neon-purple/30',
+    orange: 'bg-signal-orange/20 text-signal-orange border-signal-orange/30',
     blue: 'bg-neon-blue/20 text-neon-blue border-neon-blue/30',
     red: 'bg-red-500/20 text-red-400 border-red-500/30',
     green: 'bg-green-500/20 text-green-400 border-green-500/30',
+    purple: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   };
-  return <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${colorStyles[color]}`}>{label}</span>;
+  return <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${colorStyles[color] || colorStyles.cyan}`}>{label}</span>;
 };

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NeonCard, NeonButton } from '../UIComponents';
 import { Classroom, Student } from '../../types';
-import { Users, CheckCircle2, XCircle, ArrowLeft, Save, Calendar, Folder, History, X } from 'lucide-react';
+import { Users, CheckCircle2, XCircle, ArrowLeft, Save, Calendar, Folder, History, X, Loader2 } from 'lucide-react';
 import { AttendanceView } from './AttendanceView';
+import { api } from '../../services/api';
 
 interface TeacherAttendanceProps {
     classrooms: Classroom[];
@@ -16,6 +17,8 @@ export const TeacherAttendance: React.FC<TeacherAttendanceProps> = ({ classrooms
     const [attendanceData, setAttendanceData] = useState<Record<string, 'PRESENT' | 'ABSENT' | 'HOLIDAY'>>({});
     const [isSaved, setIsSaved] = useState(false);
     const [viewHistoryStudent, setViewHistoryStudent] = useState<Student | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
     const activeClass = classrooms.find(c => c.id === selectedClassId);
 
@@ -25,47 +28,84 @@ export const TeacherAttendance: React.FC<TeacherAttendanceProps> = ({ classrooms
     const [showMissedPrompt, setShowMissedPrompt] = useState(false);
     const [missedDate, setMissedDate] = useState<string>("");
 
-    const handleClassSelect = (classId: string) => {
+    const handleClassSelect = async (classId: string) => {
         setSelectedClassId(classId);
+        setIsLoading(true);
 
-        // CHECK YESTERDAY'S ATTENDANCE
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayKey = `attendance_${classId}_${yesterday.toLocaleDateString()}`;
+        try {
+            // CHECK YESTERDAY'S ATTENDANCE FROM DATABASE
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayData = await api.getAttendance(classId, yesterday.toLocaleDateString());
 
-        // Only check if yesterday was NOT a Sunday (simple logic for now)
-        // Adjust logic if needed (e.g. check if yesterday was holiday via other means?)
-        // For MVP: If yesterday data missing and yesterday wasn't Sunday, PROMPT.
-        if (yesterday.getDay() !== 0 && !localStorage.getItem(yesterdayKey)) {
-            setMissedDate(yesterday.toLocaleDateString());
-            setShowMissedPrompt(true);
-        }
+            // If yesterday was not a Sunday and no records exist, prompt
+            if (yesterday.getDay() !== 0 && yesterdayData.count === 0) {
+                // Also check localStorage fallback
+                const yesterdayKey = `attendance_${classId}_${yesterday.toLocaleDateString()}`;
+                if (!localStorage.getItem(yesterdayKey)) {
+                    setMissedDate(yesterday.toLocaleDateString());
+                    setShowMissedPrompt(true);
+                }
+            }
 
-        // CHECK TODAY'S ATTENDANCE
-        const todayKey = `attendance_${classId}_${new Date().toLocaleDateString()}`;
-        const savedData = localStorage.getItem(todayKey);
+            // CHECK TODAY'S ATTENDANCE FROM DATABASE
+            const todayData = await api.getAttendance(classId, new Date().toLocaleDateString());
 
-        if (savedData) {
-            setAttendanceData(JSON.parse(savedData));
-            setIsSaved(true); // Treat as saved/locked
-        } else {
-            // Reset attendance data for new class selection, initially empty
-            // AUTO-DETECT SUNDAY
-            const today = new Date();
-            if (today.getDay() === 0) { // 0 is Sunday
-                const holidayData: Record<string, 'HOLIDAY'> = {};
-                students.filter(s => s.classId === classId).forEach(s => {
-                    holidayData[s.id] = 'HOLIDAY'; // Mark all as Holiday
-                });
-                setAttendanceData(holidayData);
-                // Auto-lock for Sunday
-                // We need to SAVE it so it persists and doesn't trigger "missed" tomorrow
-                localStorage.setItem(todayKey, JSON.stringify(holidayData));
+            if (todayData.count > 0) {
+                setAttendanceData(todayData.records as Record<string, 'PRESENT' | 'ABSENT' | 'HOLIDAY'>);
+                setIsSaved(true);
+            } else {
+                // Fallback: Check localStorage for offline data
+                const todayKey = `attendance_${classId}_${new Date().toLocaleDateString()}`;
+                const savedData = localStorage.getItem(todayKey);
+
+                if (savedData) {
+                    setAttendanceData(JSON.parse(savedData));
+                    setIsSaved(true);
+                } else {
+                    // AUTO-DETECT SUNDAY
+                    const today = new Date();
+                    if (today.getDay() === 0) {
+                        const holidayData: Record<string, 'HOLIDAY'> = {};
+                        students.filter(s => s.classId === classId).forEach(s => {
+                            holidayData[s.id] = 'HOLIDAY';
+                        });
+                        setAttendanceData(holidayData);
+                        // Auto-save Sunday as holiday
+                        await handleAutoSaveHoliday(classId, holidayData);
+                        setIsSaved(true);
+                    } else {
+                        setAttendanceData({});
+                        setIsSaved(false);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error loading attendance:', error);
+            // Fallback to localStorage on API error
+            const todayKey = `attendance_${classId}_${new Date().toLocaleDateString()}`;
+            const savedData = localStorage.getItem(todayKey);
+            if (savedData) {
+                setAttendanceData(JSON.parse(savedData));
                 setIsSaved(true);
             } else {
                 setAttendanceData({});
                 setIsSaved(false);
             }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Helper to auto-save holiday attendance
+    const handleAutoSaveHoliday = async (classId: string, holidayData: Record<string, 'HOLIDAY'>) => {
+        const activeClass = classrooms.find(c => c.id === classId);
+        try {
+            await api.saveAttendance(classId, activeClass?.schoolId, new Date().toISOString(), holidayData, teacherId);
+        } catch (error) {
+            console.error('Failed to auto-save holiday, using localStorage fallback');
+            const todayKey = `attendance_${classId}_${new Date().toLocaleDateString()}`;
+            localStorage.setItem(todayKey, JSON.stringify(holidayData));
         }
     };
 
@@ -114,7 +154,7 @@ export const TeacherAttendance: React.FC<TeacherAttendanceProps> = ({ classrooms
         setAttendanceData(newData);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!selectedClassId) return;
 
         // VALIDATION: Ensure all students are marked
@@ -124,20 +164,41 @@ export const TeacherAttendance: React.FC<TeacherAttendanceProps> = ({ classrooms
             return;
         }
 
-        const records = Object.entries(attendanceData).map(([studentId, status]) => ({ studentId, status }));
+        setIsSaving(true);
 
-        // PERSIST TO LOCAL STORAGE
-        const todayKey = `attendance_${selectedClassId}_${new Date().toLocaleDateString()}`;
-        localStorage.setItem(todayKey, JSON.stringify(attendanceData));
+        try {
+            // PERSIST TO DATABASE
+            await api.saveAttendance(
+                selectedClassId,
+                activeClass?.schoolId,
+                new Date().toISOString(),
+                attendanceData,
+                teacherId
+            );
 
-        // Mock API call or callback
-        console.log("Saving attendance:", { classId: selectedClassId, date: new Date().toISOString(), records });
-        if (onSaveAttendance) {
-            onSaveAttendance(selectedClassId, new Date().toISOString(), records);
+            // Also save to localStorage as backup
+            const todayKey = `attendance_${selectedClassId}_${new Date().toLocaleDateString()}`;
+            localStorage.setItem(todayKey, JSON.stringify(attendanceData));
+
+            const records = Object.entries(attendanceData).map(([studentId, status]) => ({ studentId, status }));
+            console.log("Attendance saved:", { classId: selectedClassId, date: new Date().toISOString(), records });
+
+            if (onSaveAttendance) {
+                onSaveAttendance(selectedClassId, new Date().toISOString(), records);
+            }
+
+            setIsSaved(true);
+            alert("Attendance Saved! It cannot be edited again for today.");
+        } catch (error) {
+            console.error('API save failed, using localStorage:', error);
+            // Fallback to localStorage only
+            const todayKey = `attendance_${selectedClassId}_${new Date().toLocaleDateString()}`;
+            localStorage.setItem(todayKey, JSON.stringify(attendanceData));
+            setIsSaved(true);
+            alert("Attendance saved locally. Will sync when online.");
+        } finally {
+            setIsSaving(false);
         }
-
-        setIsSaved(true);
-        alert("Attendance Saved! It cannot be edited again for today.");
     };
 
     // --- FOLDER VIEW (Select Class) ---

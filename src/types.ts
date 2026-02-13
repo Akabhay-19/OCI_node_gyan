@@ -81,7 +81,7 @@ export interface SchoolProfile {
   studentCount: number;
   maxStudents?: number; // Optional - no limit by default
   plan: SubscriptionTier;
-  faculty: Teacher[];
+  faculty?: Teacher[];
 }
 
 // --- Learning Types ---
@@ -164,6 +164,7 @@ export interface Student {
   status: 'Active' | 'At Risk' | 'Exceling';
   weakerSubjects: string[];
   weaknessHistory: WeaknessRecord[]; // Detailed tracking
+  performanceData?: Record<string, any>; // [NEW] Mastery Tracking & GMI Data
   xp?: number; // [NEW] Gamification
   level?: number; // [NEW] Gamification
   createdAt?: string; // Joining date for attendance tracking
@@ -259,7 +260,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 export interface CardProps {
   children: React.ReactNode;
   className?: string;
-  glowColor?: 'cyan' | 'purple' | 'blue' | 'red' | 'green';
+  glowColor?: 'cyan' | 'orange' | 'blue' | 'red' | 'green' | 'purple';
   hoverEffect?: boolean;
 }
 
@@ -348,4 +349,17 @@ export interface Opportunity {
   region?: string;
   interest?: string;
   createdAt?: string;
+}
+
+// [NEW] Adaptive Learning Types
+export type RecommendationType = 'REMEDIAL' | 'QUIZ' | 'PLAN' | 'NONE';
+
+export interface LearningRecommendation {
+  type: RecommendationType;
+  topic: string;
+  subTopic?: string;
+  reason: string;
+  actionLabel: string;
+  context?: any;
+  priority?: number;
 }

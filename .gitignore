@@ -60,3 +60,7 @@ captures/
 .externalNativeBuild/
 .cxx/
 ARCHITECTURE.md
+
+# AI Agent Data
+.agent/
+.agents/

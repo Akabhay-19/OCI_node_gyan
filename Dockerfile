@@ -34,5 +34,9 @@ COPY .env.example ./
 # Expose port
 EXPOSE 5000
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:5000/api || exit 1
+
 # Start command (updated to point to backend/server.js)
 CMD ["node", "backend/server.js"]

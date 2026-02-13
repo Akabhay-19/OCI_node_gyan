@@ -35,14 +35,51 @@ export function handleGeminiStream(wss, req) {
         googleWs.on('open', () => {
             console.log("[GeminiProxy] Connected to Google Gemini!");
 
-            // Send Initial Setup Message (Config)
+            // Parse query params for context
+            const url = new URL(req.url, `http://${req.headers.host}`);
+            const grade = url.searchParams.get('grade') || 'Grade 10';
+            const subject = url.searchParams.get('subject') || 'General Knowledge';
+
+            const systemInstruction = `You are a friendly AI tutor for a ${grade} student studying ${subject}. Engage the student in conversation to check their understanding. 
+            IMPORTANT: If you detect the student clearly misunderstands a concept, or is struggling, or at the END of the conversation, you MUST call the 'report_gaps' tool with a summary of the gaps. and also make these flexible as per the class level so that the result become student friendly and also try to make them the results short for lower class levels and professional and high level with good descriptions for the upper class levels`;
+
             // Send Initial Setup Message (Config)
             const setupMsg = {
                 setup: {
                     model: `models/${model}`,
                     generation_config: {
-                        response_modalities: ["AUDIO"]
-                    }
+                        response_modalities: ["AUDIO"],
+                        speech_config: {
+                            voice_config: { prebuilt_voice_config: { voice_name: "Puck" } }
+                        }
+                    },
+                    system_instruction: {
+                        parts: [{ text: systemInstruction }]
+                    },
+                    tools: [{
+                        function_declarations: [{
+                            name: "report_gaps",
+                            description: "Report detected learning gaps to the system.",
+                            parameters: {
+                                type: "OBJECT",
+                                properties: {
+                                    gaps: {
+                                        type: "ARRAY",
+                                        items: {
+                                            type: "OBJECT",
+                                            properties: {
+                                                topic: { type: "STRING" },
+                                                gapType: { type: "STRING", enum: ["Conceptual", "Factual", "Procedural"] },
+                                                reason: { type: "STRING" },
+                                                recommendation: { type: "STRING" }
+                                            }
+                                        }
+                                    }
+                                },
+                                required: ["gaps"]
+                            }
+                        }]
+                    }]
                 }
             };
             googleWs.send(JSON.stringify(setupMsg));

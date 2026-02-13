@@ -1,152 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { api } from './services/api';
 import { Layout } from './components/Layout';
 import { RoleSelection } from './components/RoleSelection';
-import { SchoolJoin } from './components/SchoolJoin';
-import { ClassSelection } from './components/ClassSelection';
-import { Dashboard } from './components/Dashboard';
-import { AppState, UserRole, SchoolProfile, Student, Teacher, Parent, Classroom, Announcement } from './types';
+import { AppState, UserRole, SchoolProfile, Student, Teacher, Classroom, Announcement } from './types';
 import { Home } from './components/Home';
-import { DeveloperConsole } from './components/DeveloperConsole';
 import { NeonCard, NeonButton, Input } from './components/UIComponents';
 import { SmoothScroll } from './components/SmoothScroll';
-import { AboutUs } from './components/AboutUs';
-import { Team } from './components/Team';
-import { Contact } from './components/Contact';
+import { GRADE_SUBJECTS } from './constants';
+import { useAppData } from './hooks/useAppData';
+import { useAuth } from './hooks/useAuth';
 
-const INITIAL_SCHOOLS: SchoolProfile[] = [];
-const INITIAL_STUDENTS: Student[] = [];
-const INITIAL_CLASSROOMS: Classroom[] = [];
-const INITIAL_ANNOUNCEMENTS: Announcement[] = [];
+// Lazy load components for performance
+const Dashboard = lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
+const SchoolJoin = lazy(() => import('./components/SchoolJoin').then(m => ({ default: m.SchoolJoin })));
+const ClassSelection = lazy(() => import('./components/ClassSelection').then(m => ({ default: m.ClassSelection })));
+const DeveloperConsole = lazy(() => import('./components/DeveloperConsole').then(m => ({ default: m.DeveloperConsole })));
+const AboutUs = lazy(() => import('./components/AboutUs').then(m => ({ default: m.AboutUs })));
+const Team = lazy(() => import('./components/Team').then(m => ({ default: m.Team })));
+const Contact = lazy(() => import('./components/Contact').then(m => ({ default: m.Contact })));
 
-const GRADE_SUBJECTS: Record<string, string[]> = {
-  'Grade 1': ['Mathematics', 'English', 'EVS', 'Arts'],
-  'Grade 2': ['Mathematics', 'English', 'EVS', 'Arts'],
-  'Grade 3': ['Mathematics', 'English', 'Science', 'Social Studies'],
-  'Grade 4': ['Mathematics', 'English', 'Science', 'Social Studies'],
-  'Grade 5': ['Mathematics', 'English', 'Science', 'Social Studies'],
-  'Grade 6': ['Mathematics', 'English', 'Science', 'Social Studies', 'Hindi'],
-  'Grade 7': ['Mathematics', 'English', 'Science', 'Social Studies', 'Hindi'],
-  'Grade 8': ['Mathematics', 'English', 'Science', 'Social Studies', 'Hindi'],
-  'Grade 9': ['Mathematics', 'English', 'Physics', 'Chemistry', 'Biology', 'History', 'Geography'],
-  'Grade 10': ['Mathematics', 'English', 'Physics', 'Chemistry', 'Biology', 'History', 'Geography'],
-  'Grade 11': ['Physics', 'Chemistry', 'Mathematics', 'English', 'Computer Science'],
-  'Grade 12': ['Physics', 'Chemistry', 'Mathematics', 'English', 'Computer Science'],
-};
-
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-black text-white p-4">
+    <div className="flex flex-col items-center">
+      <div className="w-12 h-12 border-4 border-neon-cyan border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p className="text-neon-cyan animate-pulse">GYAN AI initializing...</p>
+    </div>
+  </div>
+);
 
 const AppContent: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [schools, setSchools] = useState<SchoolProfile[]>([]);
-  const [globalStudents, setGlobalStudents] = useState<Student[]>([]);
-  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [needsMigration, setNeedsMigration] = useState(false);
+  // Modularized State Management
+  const {
+    schools, setSchools,
+    globalStudents, setGlobalStudents,
+    classrooms, setClassrooms,
+    announcements, setAnnouncements,
+    teachers,
+    isLoading, error,
+    needsMigration, refreshData
+  } = useAppData();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [schoolsRes, studentsRes, classroomsRes, announcementsRes] = await Promise.all([
-          api.getSchools(),
-          api.getStudents(),
-          api.getClassrooms(),
-          api.getAnnouncements()
-        ]);
-
-
-        console.log("Fetched Schools:", schoolsRes);
-        setSchools(schoolsRes);
-        setGlobalStudents(studentsRes);
-        setClassrooms(classroomsRes);
-        setAnnouncements(announcementsRes);
-
-        // [NEW] Restore Session
-        const storedUserId = localStorage.getItem('GYAN_USER_ID');
-        const storedUserRole = localStorage.getItem('GYAN_USER_ROLE') as UserRole;
-
-        if (storedUserId && storedUserRole) {
-          console.log("Restoring session for:", storedUserId, storedUserRole);
-          let restoredUser: any = null;
-          let restoredSchool: SchoolProfile | undefined;
-
-          if (storedUserRole === 'STUDENT') {
-            restoredUser = studentsRes.find(s => s.id === storedUserId);
-            if (restoredUser) restoredSchool = schoolsRes.find(s => s.id === restoredUser.schoolId);
-          } else if (storedUserRole === 'TEACHER' || storedUserRole === 'ADMIN') {
-            // Search across all schools' faculty
-            for (const school of schoolsRes) {
-              const teacher = school.faculty?.find(t => t.id === storedUserId);
-              if (teacher) {
-                restoredUser = teacher;
-                restoredSchool = school;
-                break;
-              }
-            }
-            // Admin fallback for demo/hardcoded
-            if (!restoredUser && storedUserId === 'ADMIN-001') {
-              restoredSchool = schoolsRes[0];
-              restoredUser = {
-                id: 'ADMIN-001',
-                schoolId: restoredSchool?.id,
-                name: 'School Administrator',
-                email: 'admin@school.com',
-                subject: 'Administration',
-                joinedAt: new Date().toISOString(),
-                assignedClasses: []
-              };
-            }
-          } else if (storedUserRole === 'PARENT') {
-            // Demo parent restoration
-            if (storedUserId === 'P1') {
-              restoredSchool = schoolsRes[0];
-              restoredUser = { id: 'P1', schoolId: restoredSchool?.id, name: 'Parent', email: '', childId: '1' };
-            }
-          }
-
-          if (restoredUser) {
-            // [FIX] Defensive coding: Ensure arrays are initialized to prevent downstream map/filter crashes
-            if (storedUserRole === 'STUDENT') {
-              restoredUser.weaknessHistory = restoredUser.weaknessHistory || [];
-              restoredUser.classIds = restoredUser.classIds || [];
-              restoredUser.weakerSubjects = restoredUser.weakerSubjects || [];
-            } else if (storedUserRole === 'TEACHER') {
-              restoredUser.assignedClasses = restoredUser.assignedClasses || [];
-            }
-
-            setAppState(prev => ({
-              ...prev,
-              userRole: storedUserRole,
-              currentUser: restoredUser,
-              schoolName: restoredSchool?.name || null,
-              schoolId: restoredSchool?.id,
-              schoolLogo: restoredSchool?.logoUrl
-            }));
-          }
-        }
-
-        // Check for migration need (if DB is empty but localStorage has data)
-        if (schoolsRes.length === 0 && localStorage.getItem('GYAN_V2_SCHOOLS')) {
-          setNeedsMigration(true);
-        }
-      } catch (e) {
-        console.error("Failed to load data:", e);
-        setError("Failed to connect to server. Please ensure 'npm run server' is running.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const {
+    appState, setAppState,
+    devAuthenticated, setDevAuthenticated,
+    authMode, setAuthMode,
+    tempSignupData, setTempSignupData
+  } = useAuth({ schools, globalStudents, teachers });
 
   const handleMigration = async () => {
     try {
-      setIsLoading(true);
       const localSchools = JSON.parse(localStorage.getItem('GYAN_V2_SCHOOLS') || '[]');
       const localStudents = JSON.parse(localStorage.getItem('GYAN_V2_STUDENTS') || '[]');
       const localClassrooms = JSON.parse(localStorage.getItem('GYAN_V2_CLASSROOMS') || '[]');
@@ -159,18 +65,11 @@ const AppContent: React.FC = () => {
         announcements: localAnnouncements
       });
 
-      // Refresh data
       window.location.reload();
     } catch (e) {
       alert("Migration failed. See console.");
-      setIsLoading(false);
     }
   };
-
-  const [appState, setAppState] = useState<AppState>({ view: 'HOME', userRole: null, schoolName: null });
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
-  const [tempSignupData, setTempSignupData] = useState<any>(null);
-  const [devAuthenticated, setDevAuthenticated] = useState(false);
 
   // Derive dashboard tab from URL path
   const getDashboardTabFromUrl = (): string => {
@@ -190,7 +89,6 @@ const AppContent: React.FC = () => {
         'ANNOUNCEMENTS': 'ANNOUNCEMENTS',
         'OPPORTUNITIES': 'OPPORTUNITIES',
         'HISTORY': 'HISTORY',
-        // Teacher tabs
         'OVERVIEW': 'OVERVIEW',
         'CLASSES': 'CLASSES',
         'GRADEBOOK': 'GRADEBOOK',
@@ -198,22 +96,16 @@ const AppContent: React.FC = () => {
         'GAPS': 'GAPS',
         'REMEDIAL_CENTER': 'REMEDIAL_CENTER',
         'CONTENT_HUB': 'CONTENT_HUB',
-        'RESOURCES': 'RESOURCES', // Added Resources tab
-        // Admin tabs
+        'RESOURCES': 'RESOURCES',
         'TEACHERS': 'TEACHERS',
         'STUDENTS': 'STUDENTS',
-        // Parent tabs
         'CHARTS': 'CHARTS',
-        // Common
         'HOME': 'HOME',
       };
       return tabMap[tabSlug] || 'HOME';
     }
     // Default tab based on role
     if (appState.userRole === 'STUDENT') return 'LEARN';
-    if (appState.userRole === 'TEACHER') return 'OVERVIEW';
-    if (appState.userRole === 'ADMIN') return 'OVERVIEW';
-    if (appState.userRole === 'PARENT') return 'OVERVIEW';
     return 'HOME';
   };
 
@@ -244,8 +136,7 @@ const AppContent: React.FC = () => {
       maxStudents: 100,
       plan: 'TRIAL',
       inviteCode: uniqueCode,
-      logoUrl: data.logoUrl,
-      faculty: []
+      logoUrl: data.logoUrl
     };
     try {
       await api.createSchool(newSchool);
@@ -260,6 +151,13 @@ const AppContent: React.FC = () => {
   };
 
   const handleSyncUserToSchool = async (schoolId: string) => {
+    // [FIX] Guard against missing signup data (e.g. on refresh)
+    if (!tempSignupData) {
+      alert("Session expired. Please start the signup process again.");
+      navigate('/auth');
+      return;
+    }
+
     const targetSchool = schools.find(s => s.id === schoolId); if (!targetSchool) return;
 
     if (appState.userRole === 'STUDENT') {
@@ -276,6 +174,7 @@ const AppContent: React.FC = () => {
         rollNumber: tempSignupData.rollNumber,
         username: generatedUsername,
         password: tempSignupData.password,
+        classId: '', // To be selected next
         grade: tempSignupData.className,
         attendance: 100,
         avgScore: 0,
@@ -292,7 +191,42 @@ const AppContent: React.FC = () => {
         navigate('/class-selection');
       } catch (e: any) {
         console.error("Join School Error:", e);
-        alert(`Failed to join school: ${e.message || JSON.stringify(e)}`);
+        // [FIX] Handle Duplicate User -> Attempt Login
+        if (e.message?.includes('duplicate key') || e.message?.includes('violates unique constraint')) {
+          console.log("Duplicate user detected. Attempting auto-login...");
+          try {
+            // Try logging in with the email/password provided
+            // Note: api.login usually expects { username, password } or { email, password }
+            // We'll try passing email as username (backend auth logic dependent) or just the credentials object
+            const loginRes = await api.login({
+              username: tempSignupData.email || generatedUsername,
+              password: tempSignupData.password,
+              role: 'STUDENT'
+            });
+
+            console.log("Auto-login successful:", loginRes);
+            setAppState(prev => ({
+              ...prev,
+              schoolName: targetSchool.name,
+              schoolId: targetSchool.id,
+              schoolLogo: targetSchool.logoUrl,
+              currentUser: loginRes
+            }));
+
+            // Route based on whether they have a class
+            if (loginRes.classId) {
+              navigate('/dashboard');
+            } else {
+              navigate('/class-selection');
+            }
+            return;
+          } catch (loginErr) {
+            console.error("Auto-login failed:", loginErr);
+            alert("User with this information already exists, but auto-login failed. Please go back and Login instead.");
+          }
+        } else {
+          alert(`Failed to join school: ${e.message || JSON.stringify(e)}`);
+        }
       }
     } else if (appState.userRole === 'TEACHER') {
       const newTeacher: Teacher = {
@@ -302,6 +236,7 @@ const AppContent: React.FC = () => {
         email: tempSignupData.email,
         mobileNumber: tempSignupData.mobileNumber,
         subject: tempSignupData.stream,
+        password: tempSignupData.password,
         joinedAt: new Date().toISOString(),
         assignedClasses: []
       };
@@ -312,8 +247,11 @@ const AppContent: React.FC = () => {
         setAppState(prev => ({ ...prev, schoolName: targetSchool.name, schoolId: targetSchool.id, schoolLogo: targetSchool.logoUrl, currentUser: newTeacher }));
         navigate('/dashboard/overview');
       } catch (e: any) {
-        console.error("Join School (Teacher) Error:", e);
-        alert(`Failed to join school as teacher: ${e.message || JSON.stringify(e)}`);
+        if (e.message?.includes('duplicate key') || e.message?.includes('violates unique constraint')) {
+          alert("Teacher already exists. Please login or use different credentials.");
+        } else {
+          alert(`Failed to join school as teacher: ${e.message || JSON.stringify(e)}`);
+        }
       }
     }
   };
@@ -509,7 +447,7 @@ const AppContent: React.FC = () => {
 
 
   const handleJoinClass = async (studentId: string, inviteCode: string) => {
-    const targetClass = classrooms.find(c => c.inviteCode === inviteCode);
+    const targetClass = classrooms.find(c => (c.inviteCode || '').trim().toUpperCase() === inviteCode.trim().toUpperCase());
     const student = globalStudents.find(s => s.id === studentId);
 
     if (targetClass && student) {
@@ -630,6 +568,7 @@ const AppContent: React.FC = () => {
         nextRoute = '/dashboard/overview';
       }
 
+      console.log("[Auth] handleLogin success. User ID:", user.id);
       setAppState(prev => ({
         ...prev,
         userRole: role,
@@ -767,7 +706,7 @@ const AppContent: React.FC = () => {
             // Update local state for teacher
             setSchools(prev => prev.map(s => ({
               ...s,
-              faculty: s.faculty.map(f => f.id === updated.id ? { ...f, ...updated } : f)
+              faculty: (s.faculty || []).map(f => f.id === updated.id ? { ...f, ...updated } : f)
             })));
             setAppState(prev => ({ ...prev, currentUser: updated }));
             // Note: Backend updateTeacher not assumed to exist in full form, but local update is critical for UX
@@ -784,133 +723,151 @@ const AppContent: React.FC = () => {
             </div>
           )}
 
-          <Routes>
-            <Route path="/" element={
-              <Home
-                onGetStarted={() => { setAuthMode('signup'); navigate('/auth'); }}
-                onLogin={() => { setAuthMode('login'); navigate('/auth'); }}
-                onDevConsole={() => navigate('/developer')}
-                onNavigate={(page) => {
-                  if (page === 'ABOUT') navigate('/about');
-                  else if (page === 'TEAM') navigate('/team');
-                  else if (page === 'CONTACT') navigate('/contact');
-                }}
-              />
-            } />
-
-            <Route path="/about" element={<AboutUs onBack={() => navigate('/')} />} />
-            <Route path="/team" element={<Team onBack={() => navigate('/')} />} />
-            <Route path="/contact" element={<Contact onBack={() => navigate('/')} />} />
-
-            <Route path="/auth" element={
-              <RoleSelection
-                onSelectRole={(r) => { setAppState(prev => ({ ...prev, userRole: r })); navigate('/join-school'); }}
-                onLogin={handleLogin}
-                onSignupDetails={setTempSignupData}
-                onRegisterSchool={handleRegisterSchool}
-                onBackToHome={() => navigate('/')}
-                faculty={schools[0]?.faculty}
-                initialView={authMode === 'login' ? 'LOGIN' : 'HOME'}
-                showLoginButton={authMode !== 'signup'}
-              />
-            } />
-
-            <Route path="/join-school" element={
-              <SchoolJoin
-                role={appState.userRole}
-                availableSchools={schools}
-                onJoinSchool={handleSyncUserToSchool}
-                onBack={() => navigate('/auth')}
-                tempStudentName={tempSignupData?.name}
-                prefilledCode={tempSignupData?.inviteCode}
-              />
-            } />
-
-            <Route path="/class-selection" element={
-              appState.currentUser && appState.userRole === 'STUDENT' ? (
-                <ClassSelection
-                  studentName={appState.currentUser.name}
-                  username={(appState.currentUser as Student).username}
-                  schoolName={appState.schoolName || "your School"}
-                  studentGrade={(appState.currentUser as Student).grade}
-                  classrooms={classrooms.filter(c =>
-                    c.schoolId === appState.schoolId && c.status !== 'ARCHIVED' && c.status !== 'LOCKED' &&
-                    (!(appState.currentUser as Student).grade || c.name.startsWith((appState.currentUser as Student).grade)) &&
-                    !((appState.currentUser as Student).classIds?.includes(c.id) || (appState.currentUser as Student).classId === c.id)
-                  )}
-                  debugClassrooms={classrooms.filter(c => c.schoolId === appState.schoolId)}
-                  onSelectClass={handleClassSelected}
-                  onJoinClasses={handleJoinClasses}
-                  onJoinByCode={async (code) => {
-                    const trimmedCode = code.trim();
-                    const success = await handleJoinClass(appState.currentUser!.id, trimmedCode);
-                    if (success) {
-                      const targetClass = classrooms.find(c => c.inviteCode === trimmedCode);
-                      if (targetClass) handleClassSelected(targetClass.id);
-                    } else {
-                      alert(`Failed to join. Please check the code: "${trimmedCode}"`);
-                    }
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/" element={
+                <Home
+                  onGetStarted={() => { setAuthMode('signup'); navigate('/auth'); }}
+                  onLogin={() => { setAuthMode('login'); navigate('/auth'); }}
+                  onDevConsole={() => navigate('/developer')}
+                  onNavigate={(page) => {
+                    if (page === 'ABOUT') navigate('/about');
+                    else if (page === 'TEAM') navigate('/team');
+                    else if (page === 'CONTACT') navigate('/contact');
                   }}
-                  onBack={() => { setAppState(prev => ({ ...prev, currentUser: undefined, userRole: null })); navigate('/auth'); }}
-                  currentUser={appState.currentUser}
                 />
-              ) : (
-                <div className="min-h-screen flex items-center justify-center bg-black">
-                  <p className="text-white">Please log in first.</p>
-                </div>
-              )
-            } />
+              } />
 
-            <Route path="/developer" element={
-              devAuthenticated ? (
-                <DeveloperConsole
-                  onBack={() => navigate('/')}
+              <Route path="/about" element={<AboutUs onBack={() => navigate('/')} />} />
+              <Route path="/team" element={<Team onBack={() => navigate('/')} />} />
+              <Route path="/contact" element={<Contact onBack={() => navigate('/')} />} />
+
+              <Route path="/auth" element={
+                <RoleSelection
+                  onSelectRole={(r) => { setAppState(prev => ({ ...prev, userRole: r })); navigate('/join-school'); }}
+                  onLogin={handleLogin}
+                  onSignupDetails={setTempSignupData}
+                  onRegisterSchool={handleRegisterSchool}
+                  onBackToHome={() => navigate('/')}
+                  faculty={schools[0]?.faculty}
+                  initialView={authMode === 'login' ? 'LOGIN' : 'HOME'}
+                  showLoginButton={authMode !== 'signup'}
                 />
-              ) : (
-                <div className="min-h-screen flex items-center justify-center bg-black p-4">
-                  <div className="absolute top-4 left-4">
-                    <NeonButton variant="ghost" onClick={() => navigate('/')}>Back</NeonButton>
+              } />
+
+              <Route path="/join-school" element={
+                <SchoolJoin
+                  role={appState.userRole}
+                  availableSchools={schools}
+                  onJoinSchool={handleSyncUserToSchool}
+                  onBack={() => navigate('/auth')}
+                  tempStudentName={tempSignupData?.name}
+                  prefilledCode={tempSignupData?.inviteCode}
+                />
+              } />
+
+              <Route path="/class-selection" element={
+                appState.currentUser && appState.userRole === 'STUDENT' ? (
+                  <ClassSelection
+                    studentName={appState.currentUser.name}
+                    username={(appState.currentUser as Student).username}
+                    schoolName={appState.schoolName || "your School"}
+                    studentGrade={(appState.currentUser as Student).grade}
+                    classrooms={classrooms.filter(c =>
+                      c.schoolId === appState.schoolId && c.status !== 'ARCHIVED' && c.status !== 'LOCKED' &&
+                      // [FIX] Smart Grade Matching (handles "9" vs "9th" vs "Grade 9")
+                      (() => {
+                        const student = appState.currentUser as Student;
+                        if (!student.grade) return true;
+
+                        const getGradeNum = (s: string) => (s || '').replace(/\D/g, '');
+                        const studentGradeNum = getGradeNum(student.grade);
+                        const classGradeNum = getGradeNum(c.name);
+
+                        // If both have numbers, they MUST match (e.g. "9" == "9", "9" != "10")
+                        if (studentGradeNum && classGradeNum) {
+                          return studentGradeNum === classGradeNum;
+                        }
+
+                        // Fallback: substring match (e.g. "Physics" matches "Physics")
+                        return c.name.toLowerCase().includes(student.grade.toLowerCase());
+                      })() &&
+                      !((appState.currentUser as Student).classIds?.includes(c.id) || (appState.currentUser as Student).classId === c.id)
+                    )}
+                    debugClassrooms={classrooms.filter(c => c.schoolId === appState.schoolId)}
+                    onSelectClass={handleClassSelected}
+                    onJoinClasses={handleJoinClasses}
+                    onJoinByCode={async (code) => {
+                      const trimmedCode = code.trim();
+                      const success = await handleJoinClass(appState.currentUser!.id, trimmedCode);
+                      if (success) {
+                        const targetClass = classrooms.find(c => c.inviteCode === trimmedCode);
+                        if (targetClass) handleClassSelected(targetClass.id);
+                      } else {
+                        alert(`Failed to join. Please check the code: "${trimmedCode}"`);
+                      }
+                    }}
+                    onBack={() => { setAppState(prev => ({ ...prev, currentUser: undefined, userRole: null })); navigate('/auth'); }}
+                    currentUser={appState.currentUser}
+                  />
+                ) : (
+                  <div className="min-h-screen flex items-center justify-center bg-black">
+                    <p className="text-white">Please log in first.</p>
                   </div>
-                  <NeonCard className="w-full max-w-md p-8 border-neon-cyan/50">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">Developer Access</h2>
-                    <DevLogin
-                      onLogin={(success) => setDevAuthenticated(success)}
-                    />
-                  </NeonCard>
-                </div>
-              )
-            } />
+                )
+              } />
 
-            <Route path="/dashboard/*" element={
-              <Dashboard
-                userRole={appState.userRole!}
-                schoolName={appState.schoolName!}
-                schoolProfile={schools.find(s => s.id === appState.schoolId)}
-                students={globalStudents.filter(s => s.schoolId === appState.schoolId)}
-                classrooms={classrooms.filter(c => c.schoolId === appState.schoolId)}
-                announcements={announcements.filter(a => a.schoolId === appState.schoolId)}
-                setStudents={setGlobalStudents}
-                onLogout={() => { setAppState(prev => ({ ...prev, userRole: null, currentUser: undefined })); navigate('/'); }}
-                currentUser={appState.currentUser}
-                onCreateClass={handleCreateClassroom}
-                onJoinClass={handleJoinClass}
-                onPostAnnouncement={handlePostAnnouncement}
-                getDisplayName={getDisplayName}
-                onRenameClass={handleRenameClass}
-                onUpdateTeacher={handleUpdateTeacher}
-                onUpdateStudent={handleUpdateStudent}
-                onToggleClassLock={handleToggleClassLock}
-                onLockAllClasses={handleLockAllClasses}
-                onArchiveClass={handleArchiveClass}
-                onRestoreClass={handleRestoreClass}
-                onKickStudent={handleRemoveStudentFromClass}
-                onJoinClassClick={() => navigate('/class-selection')}
-                /* Pass Control Pass-Through */
-                activeTab={dashboardTab}
-                onTabChange={navigateToDashboardTab}
-              />
-            } />
-          </Routes>
+              <Route path="/developer" element={
+                devAuthenticated ? (
+                  <DeveloperConsole
+                    onBack={() => navigate('/')}
+                  />
+                ) : (
+                  <div className="min-h-screen flex items-center justify-center bg-black p-4">
+                    <div className="absolute top-4 left-4">
+                      <NeonButton variant="ghost" onClick={() => navigate('/')}>Back</NeonButton>
+                    </div>
+                    <NeonCard className="w-full max-w-md p-8 border-neon-cyan/50">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">Developer Access</h2>
+                      <DevLogin
+                        onLogin={(success) => setDevAuthenticated(success)}
+                      />
+                    </NeonCard>
+                  </div>
+                )
+              } />
+
+              <Route path="/dashboard/*" element={
+                <Dashboard
+                  userRole={appState.userRole!}
+                  schoolName={appState.schoolName!}
+                  schoolProfile={schools.find(s => s.id === appState.schoolId)}
+                  students={globalStudents.filter(s => s.schoolId === appState.schoolId)}
+                  classrooms={classrooms.filter(c => c.schoolId === appState.schoolId)}
+                  announcements={announcements.filter(a => a.schoolId === appState.schoolId)}
+                  setStudents={setGlobalStudents}
+                  onLogout={() => { setAppState(prev => ({ ...prev, userRole: null, currentUser: undefined })); navigate('/'); }}
+                  currentUser={appState.currentUser}
+                  onCreateClass={handleCreateClassroom}
+                  onJoinClass={handleJoinClass}
+                  onPostAnnouncement={handlePostAnnouncement}
+                  getDisplayName={getDisplayName}
+                  onRenameClass={handleRenameClass}
+                  onUpdateTeacher={handleUpdateTeacher}
+                  onUpdateStudent={handleUpdateStudent}
+                  onToggleClassLock={handleToggleClassLock}
+                  onLockAllClasses={handleLockAllClasses}
+                  onArchiveClass={handleArchiveClass}
+                  onRestoreClass={handleRestoreClass}
+                  onKickStudent={handleRemoveStudentFromClass}
+                  onJoinClassClick={() => navigate('/class-selection')}
+                  /* Pass Control Pass-Through */
+                  activeTab={dashboardTab}
+                  onTabChange={navigateToDashboardTab}
+                />
+              } />
+            </Routes>
+          </Suspense>
         </>
       </Layout>
     </SmoothScroll>

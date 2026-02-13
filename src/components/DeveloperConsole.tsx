@@ -40,7 +40,7 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
     const [detailView, setDetailView] = useState<'FOLDERS' | 'TEACHERS' | 'STUDENTS' | 'PARENTS' | 'CLASSES'>('FOLDERS');
     const [schoolDetails, setSchoolDetails] = useState<{ teachers: any[], students: any[], parents: any[], classrooms: any[] }>({ teachers: [], students: [], parents: [], classrooms: [] });
     const [expandedClasses, setExpandedClasses] = useState<Set<string>>(new Set());
-    const [displayMode, setDisplayMode] = useState<'DATA' | 'CONTENT' | 'UPDATES' | 'API' | 'AI_CONFIG' | 'CONTACT' | 'INBOX'>('DATA');
+    const [displayMode, setDisplayMode] = useState<'DATA' | 'CONTENT' | 'UPDATES' | 'API' | 'AI_CONFIG' | 'CONTACT' | 'INBOX' | 'PATENT'>('DATA');
     const [siteContent, setSiteContent] = useState<SiteContent>({ teamMembers: [] });
     const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
 
@@ -58,15 +58,13 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
     const fetchData = async () => {
         setLoading(true);
         try {
-            const API_URL = (import.meta as any).env.VITE_API_URL ||
-                ((import.meta as any).env.PROD ? '/api' : 'http://localhost:5000/api');
             const [statsRes, schoolsRes] = await Promise.all([
-                fetch(`${API_URL}/dev/stats`),
-                fetch(`${API_URL}/dev/schools`)
+                api.getDevStats(),
+                api.getDevSchools()
             ]);
 
-            if (statsRes.ok) setStats(await statsRes.json());
-            if (schoolsRes.ok) setSchools(await schoolsRes.json());
+            setStats(statsRes);
+            setSchools(schoolsRes);
 
         } catch (error) {
             console.error("Dev Console Error:", error);
@@ -109,7 +107,7 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
         try {
             const API_URL = (import.meta as any).env.VITE_API_URL ||
                 ((import.meta as any).env.PROD ? '/api' : 'http://localhost:5000/api');
-            const res = await fetch(`${API_URL}/ai/config`);
+            const res = await fetch(`${API_URL}/ai/config`, { headers: api.getAuthHeaders() });
             if (res.ok) {
                 const config = await res.json();
                 setAiConfig(config);
@@ -124,7 +122,7 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
         try {
             const API_URL = (import.meta as any).env.VITE_API_URL ||
                 ((import.meta as any).env.PROD ? '/api' : 'http://localhost:5000/api');
-            const res = await fetch(`${API_URL}/ai/free-models`);
+            const res = await fetch(`${API_URL}/ai/free-models`, { headers: api.getAuthHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 setFreeModels(data.models || []);
@@ -234,7 +232,7 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
         try {
             const API_URL = (import.meta as any).env.VITE_API_URL ||
                 ((import.meta as any).env.PROD ? '/api' : 'http://localhost:5000/api');
-            const res = await fetch(`${API_URL}/dev/school/${schoolId}/details`);
+            const res = await fetch(`${API_URL}/dev/school/${schoolId}/details`, { headers: api.getAuthHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 setSchoolDetails(data);
@@ -330,14 +328,138 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
                         <RefreshCw className="w-4 h-4" /> Updates & Roadmap
                     </button>
                     <button
-                        onClick={() => { setDisplayMode('AI_CONFIG'); fetchAIConfig(); fetchFreeModels(); }}
+                        onClick={() => setDisplayMode('PATENT')}
+                        className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${displayMode === 'PATENT' ? 'bg-pink-500/20 text-pink-400 border border-pink-500/50' : 'text-gray-500 hover:text-white'}`}
+                    >
+                        <Sparkles className="w-4 h-4" /> Patent Algorithms
+                    </button>
+                    <button
+                        onClick={() => setDisplayMode('AI_CONFIG')}
                         className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${displayMode === 'AI_CONFIG' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50' : 'text-gray-500 hover:text-white'}`}
                     >
                         <Cpu className="w-4 h-4" /> AI Configuration
                     </button>
                 </div>
 
-                {displayMode === 'AI_CONFIG' ? (
+                {displayMode === 'PATENT' ? (
+                    <div className="space-y-8">
+                        <NeonCard className="p-8" glowColor="pink">
+                            <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-purple-600 mb-6">
+                                GyanAI Adaptive Learning System (Patent Pending)
+                            </h2>
+                            <p className="text-gray-400 mb-8 max-w-3xl">
+                                Visualization of the manufacturing-grade control algorithms used to optimize student learning trajectories.
+                            </p>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {/* 1. GMI Algorithm */}
+                                <div className="bg-black/40 border border-white/10 rounded-xl p-6">
+                                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                        <div className="p-2 bg-blue-500/20 rounded-lg"><BarChart className="w-5 h-5 text-blue-400" /></div>
+                                        1. GyanAI Mastery Index (GMI)
+                                    </h3>
+                                    <div className="bg-blue-900/10 p-4 rounded-lg border border-blue-500/20 mb-4">
+                                        <code className="text-xs text-blue-300 font-mono block mb-2">
+                                            M(t) = σ( α·P(t) + (1-α)·M(t-1)·ψ(Δt) ) · C(t)
+                                        </code>
+                                        <p className="text-sm text-gray-400">
+                                            Recursive state estimation fusing cognitive performance with behavioral metrics.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-400">Problem: Cramming</span>
+                                            <span className="text-green-400 font-bold">Solved</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">
+                                            Standard apps effectively lie by showing 100% mastery after a cram session. Our
+                                            <strong className="text-blue-400"> Forgetting Curve Function ψ(Δt)</strong> acts as a
+                                            truth serum, decaying scores daily if consistency is lacking.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* 2. PID DDA */}
+                                <div className="bg-black/40 border border-white/10 rounded-xl p-6">
+                                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                        <div className="p-2 bg-green-500/20 rounded-lg"><Zap className="w-5 h-5 text-green-400" /></div>
+                                        2. PID Dynamic Difficulty
+                                    </h3>
+                                    <div className="bg-green-900/10 p-4 rounded-lg border border-green-500/20 mb-4">
+                                        <code className="text-xs text-green-300 font-mono block mb-2">
+                                            ΔD = Kp·e(t) + Ki∫e(τ)dτ + Kd·de(t)/dt
+                                        </code>
+                                        <p className="text-sm text-gray-400">
+                                            Industrial control theory applied to pedagogical difficulty scaling.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-400">Problem: Rage Quitting</span>
+                                            <span className="text-green-400 font-bold">Solved</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">
+                                            The <strong className="text-green-400">Integral Term (Ki)</strong> detects subtle, long-term struggle
+                                            before a student fails, gently lowering difficulty to maintain the "Flow State".
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* 3. NBA Utility */}
+                                <div className="bg-black/40 border border-white/10 rounded-xl p-6">
+                                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                        <div className="p-2 bg-purple-500/20 rounded-lg"><Sparkles className="w-5 h-5 text-purple-400" /></div>
+                                        3. Next Best Action (NBA)
+                                    </h3>
+                                    <div className="bg-purple-900/10 p-4 rounded-lg border border-purple-500/20 mb-4">
+                                        <code className="text-xs text-purple-300 font-mono block mb-2">
+                                            U(a) = Σ wi · fi(State, Action)
+                                        </code>
+                                        <p className="text-sm text-gray-400">
+                                            Utility maximization engine for assigning learning interventions.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-400">Problem: Decision Paralysis</span>
+                                            <span className="text-green-400 font-bold">Solved</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">
+                                            Eliminates "What should I study?". The system mathematically proves which 5-minute activity
+                                            yields the highest ROI for the student right now.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* 4. Voice Sentiment */}
+                                <div className="bg-black/40 border border-white/10 rounded-xl p-6">
+                                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                        <div className="p-2 bg-pink-500/20 rounded-lg"><Cpu className="w-5 h-5 text-pink-400" /></div>
+                                        4. Sentiment-Aware Mastery
+                                    </h3>
+                                    <div className="bg-pink-900/10 p-4 rounded-lg border border-pink-500/20 mb-4">
+                                        <code className="text-xs text-pink-300 font-mono block mb-2">
+                                            S_voice ∈ [0.8, 1.2]
+                                        </code>
+                                        <p className="text-sm text-gray-400">
+                                            Modulating mastery based on verbal confidence cues.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-400">Problem: Lucky Guesses</span>
+                                            <span className="text-green-400 font-bold">Solved</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">
+                                            Detects "Unconfident Correct" answers. If a student guesses right but sounds hesitant,
+                                            we treat it as a partial gap, building <strong className="text-pink-400">True Confidence</strong>.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </NeonCard>
+                    </div>
+                ) : displayMode === 'AI_CONFIG' ? (
                     <div className="space-y-6">
                         <NeonCard className="p-8" glowColor="purple">
                             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">

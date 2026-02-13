@@ -5,7 +5,7 @@
 
 @theme {
   --color-neon-cyan: #00f3ff;
-  --color-neon-purple: #bc13fe;
+  --color-signal-orange: #ff5f1f;
 }
 
 /* Custom Base Styles */
@@ -57,13 +57,13 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #00f3ff 0%, #bc13fe 100%);
+  background: linear-gradient(180deg, #00f3ff 0%, #ff5f1f 100%);
   border-radius: 8px;
   border: 2px solid rgba(0, 0, 0, 0.2);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #60a5fa 0%, #d946ef 100%);
+  background: linear-gradient(180deg, #60a5fa 0%, #ff8c00 100%);
   box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
 }
 
@@ -85,6 +85,7 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -96,7 +97,7 @@ body {
     padding-top: 3rem;
     padding-bottom: 3rem;
   }
-  
+
   .mobile-stack {
     flex-direction: column;
   }
@@ -112,8 +113,8 @@ body {
   box-shadow: 0 0 5px rgba(0, 243, 255, 0.2), inset 0 0 5px rgba(0, 243, 255, 0.1);
 }
 
-.neon-border-purple {
-  box-shadow: 0 0 5px rgba(188, 19, 254, 0.2), inset 0 0 5px rgba(188, 19, 254, 0.1);
+.neon-border-orange {
+  box-shadow: 0 0 5px rgba(255, 95, 31, 0.2), inset 0 0 5px rgba(255, 95, 31, 0.1);
 }
 
 /* Lightning Flash Effect */

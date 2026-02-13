@@ -219,9 +219,53 @@ insert into storage.buckets (id, name, public)
 values ('assignments', 'assignments', true), ('avatars', 'avatars', true)
 on conflict (id) do nothing;
 
--- Policies (Allow all for simplicity in this stage, should be hardened later)
--- Note: Requires RLS to be enabled first if you want specific policies.
--- For now, we assume standard setup.
+-- Policies (Hardened for Production)
+-- Enable RLS on all tables
+alter table schools enable row level security;
+alter table teachers enable row level security;
+alter table classrooms enable row level security;
+alter table students enable row level security;
+alter table announcements enable row level security;
+alter table assignments enable row level security;
+alter table parents enable row level security;
+alter table submissions enable row level security;
+alter table suggestions enable row level security;
+alter table system_users enable row level security;
+alter table app_config enable row level security;
+alter table generated_modules enable row level security;
+alter table teacher_history enable row level security;
+alter table site_content enable row level security;
+alter table contact_submissions enable row level security;
+alter table password_resets enable row level security;
+alter table opportunities enable row level security;
+alter table learning_gaps enable row level security;
+
+-- 1. Schools: Public can see names for joining, but only admins can edit
+create policy "Schools are viewable by everyone" on schools for select using (true);
+create policy "Schools can only be updated by admins" on schools for update using (auth.role() = 'service_role');
+
+-- 2. Announcements: Viewable by everyone in the school
+create policy "Announcements are viewable by everyone" on announcements for select using (true);
+create policy "Announcements can only be managed by teachers/admins" on announcements for all using (auth.role() = 'service_role');
+
+-- 3. App Config: Read only for everyone, write for system_users/service_role
+create policy "App config is viewable by everyone" on app_config for select using (true);
+create policy "App config can only be managed by service_role" on app_config for all using (auth.role() = 'service_role');
+
+-- 4. Site Content: Public read, service_role write
+create policy "Site content is viewable by everyone" on site_content for select using (true);
+create policy "Site content managed by service_role" on site_content for all using (auth.role() = 'service_role');
+
+-- [NOTE] Since the backend currently uses the 'anon' key for everything via Supabase JS Client,
+-- we must ensure the backend is trusted. In a true multi-tenant hardened setup, 
+-- we would use authenticated tokens from the client.
+-- For now, we are allowing 'anon' to read public tables but restricting sensitive ones.
+
+-- 5. Sensitive Tables: Restrict to service_role (backend)
+create policy "Restricted access to system_users" on system_users for all using (auth.role() = 'service_role');
+create policy "Restricted access to students" on students for all using (auth.role() = 'service_role');
+create policy "Restricted access to teachers" on teachers for all using (auth.role() = 'service_role');
+create policy "Restricted access to submissions" on submissions for all using (auth.role() = 'service_role');
 
 -- Default AI Config
 insert into app_config (key, value)

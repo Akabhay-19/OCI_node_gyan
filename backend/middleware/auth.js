@@ -1,6 +1,11 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gyan-ai-super-secret-key-change-in-production';
+// [SECURITY] JWT_SECRET MUST be set in production. No fallback.
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    console.error('[GYAN AI] CRITICAL: JWT_SECRET environment variable is missing! Auth will not work.');
+    // In production, you might want to: process.exit(1);
+}
 const JWT_EXPIRES_IN = '7d';
 
 /**
@@ -15,20 +20,25 @@ export const generateToken = (payload) => {
  * Usage: app.get('/protected', verifyToken, (req, res) => { ... })
  */
 export const verifyToken = (req, res, next) => {
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
+        console.log(`[Auth] 401: No token provided. Path: ${req.path}`);
+        console.log(`[Auth] Header received: ${authHeader}`);
         return res.status(401).json({ error: 'Access denied. No token provided.' });
     }
-
-    const token = authHeader.split(' ')[1];
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         req.user = decoded; // Attach decoded user info to request
         next();
     } catch (err) {
-        return res.status(401).json({ error: 'Invalid or expired token.' });
+        const reason = err.name === 'TokenExpiredError' ? 'Token expired'
+            : err.name === 'JsonWebTokenError' ? 'Invalid token'
+                : 'Token verification failed';
+        console.warn(`[Auth] ${reason} for ${req.method} ${req.originalUrl}: ${err.message}`);
+        return res.status(401).json({ error: reason });
     }
 };
 

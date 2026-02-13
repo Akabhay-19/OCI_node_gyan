@@ -19,7 +19,7 @@ import { ModuleHistory } from './Features/ModuleHistory';
 import { parseClassDetails } from '../utils/classParser'; // [NEW]
 import { OpportunitiesView } from './Features/OpportunitiesView';
 import { ModelSelector } from './ModelSelector';
-import { BookOpen, Target, Trophy, ClipboardList, Sparkles, Feather, CheckCircle2, X, XCircle, AlertCircle, AlertTriangle, Clock, Star, TrendingUp, Calendar, Copy, School, Bell, Plus, Network, Zap, History, ChevronLeft, ChevronRight, LayoutDashboard, Globe, CircleHelp, Languages, ArrowRight, Trash2, FolderOpen } from 'lucide-react';
+import { BookOpen, Target, Trophy, ClipboardList, Sparkles, Feather, CheckCircle2, X, XCircle, AlertCircle, AlertTriangle, Clock, Star, TrendingUp, Calendar, Copy, School, Bell, Plus, Network, Zap, History, ChevronLeft, ChevronRight, LayoutDashboard, Globe, CircleHelp, Languages, ArrowRight, Trash2, FolderOpen, Brain } from 'lucide-react';
 import { api } from '../services/api';
 
 interface StudentDashboardProps {
@@ -382,7 +382,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                     key={cid}
                                     onClick={() => handleClassSelect(cid)}
                                     className="p-8 cursor-pointer hover:scale-105 transition-transform group flex flex-col items-center justify-center text-center gap-4 min-h-[220px]"
-                                    glowColor={index % 2 === 0 ? "purple" : "blue"}
+                                    glowColor={index % 2 === 0 ? "orange" : "blue"}
                                 >
                                     <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors ${index % 2 === 0 ? 'bg-neon-purple/10 group-hover:bg-neon-purple/20' : 'bg-blue-500/10 group-hover:bg-blue-500/20'}`}>
                                         <BookOpen className={`w-8 h-8 ${index % 2 === 0 ? 'text-neon-purple' : 'text-blue-400'}`} />
@@ -532,7 +532,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 w-full lg:w-auto">
+                        <div className="grid grid-cols-3 gap-3 w-full lg:w-auto">
                             {/* XP Badge */}
                             <div className="flex items-center gap-2 md:gap-3 px-3 md:px-5 py-2 md:py-3 rounded-2xl bg-yellow-900/20 border border-yellow-500/30 backdrop-blur-md">
                                 <div className="p-1.5 md:p-2 bg-yellow-500/20 rounded-lg text-yellow-500">
@@ -552,6 +552,17 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                 <div className="min-w-0">
                                     <div className="text-[10px] md:text-xs text-neon-purple font-bold uppercase tracking-wider truncate">Rank</div>
                                     <div className="text-sm md:text-xl font-display font-bold text-white truncate">#{rank} <span className="hidden sm:inline text-sm text-gray-400 font-sans">Class</span></div>
+                                </div>
+                            </div>
+
+                            {/* Mastery Badge */}
+                            <div className="flex items-center gap-2 md:gap-3 px-3 md:px-5 py-2 md:py-3 rounded-2xl bg-cyan-900/20 border border-neon-cyan/30 backdrop-blur-md">
+                                <div className="p-1.5 md:p-2 bg-neon-cyan/20 rounded-lg text-neon-cyan">
+                                    <Brain className="w-4 h-4 md:w-6 md:h-6" />
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-[10px] md:text-xs text-neon-cyan font-bold uppercase tracking-wider truncate">AI Mastery</div>
+                                    <div className="text-sm md:text-xl font-display font-bold text-white truncate">{Math.round(student.performanceData?.globalMasteryIndex || 0)}%</div>
                                 </div>
                             </div>
                         </div>
@@ -1179,7 +1190,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                                             <NeonCard
                                                                 key={folderName}
                                                                 onClick={() => setActiveFolder({ source: activeSource, name: folderName })}
-                                                                glowColor={activeSource === 'AI_LEARNING' ? (index % 2 === 0 ? "cyan" : "blue") : (activeSource === 'ASSIGNMENT' ? "purple" : "green")}
+                                                                glowColor={activeSource === 'AI_LEARNING' ? (index % 2 === 0 ? "cyan" : "blue") : (activeSource === 'ASSIGNMENT' ? "orange" : "green")}
                                                                 className="relative overflow-hidden group p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-white/10 bg-white/5 min-h-[180px] flex flex-col justify-between"
                                                             >
                                                                 {/* Decorative Background Glow */}
@@ -1412,7 +1423,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                                             <NeonCard
                                                                 key={folderName}
                                                                 onClick={() => setActiveFolder({ source: activeSource, name: folderName })}
-                                                                glowColor={activeSource === 'AI_LEARNING' ? (index % 2 === 0 ? "cyan" : "blue") : (activeSource === 'ASSIGNMENT' ? "purple" : "green")}
+                                                                glowColor={activeSource === 'AI_LEARNING' ? (index % 2 === 0 ? "cyan" : "blue") : (activeSource === 'ASSIGNMENT' ? "orange" : "green")}
                                                                 className="relative overflow-hidden group p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-white/10 bg-white/5 min-h-[180px] flex flex-col justify-between"
                                                             >
                                                                 {/* Decorative Background Glow */}

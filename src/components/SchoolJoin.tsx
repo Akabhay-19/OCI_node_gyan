@@ -16,15 +16,38 @@ interface SchoolJoinProps {
 export const SchoolJoin: React.FC<SchoolJoinProps> = ({ role, availableSchools, onJoinSchool, onBack, isLocked = false, tempStudentName, prefilledCode }) => {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [attempted, setAttempted] = useState(false);
+  const joinInitiatedRef = React.useRef(false);
 
+  // Pre-fill code from signup
   useEffect(() => { if (prefilledCode) setCode(prefilledCode); }, [prefilledCode]);
+
+  // Auto-join when prefilledCode is provided and schools are loaded
+  useEffect(() => {
+    if (prefilledCode && availableSchools.length > 0 && !attempted && !isLocked && !joinInitiatedRef.current) {
+      joinInitiatedRef.current = true; // Mark as initiated immediately
+      setAttempted(true);
+      console.log("[SchoolJoin] Auto-joining with prefilled code:", prefilledCode);
+
+      const school = availableSchools.find(s => (s.inviteCode || '').toUpperCase() === prefilledCode.trim().toUpperCase());
+
+      if (school) {
+        console.log("[SchoolJoin] Found matching school:", school.name);
+        onJoinSchool(school.id);
+      } else {
+        console.warn("[SchoolJoin] No school found for code:", prefilledCode);
+        setError("Invalid Code - Please check with your school admin");
+        joinInitiatedRef.current = false; // Reset if failed so user can try manually
+      }
+    }
+  }, [prefilledCode, availableSchools, attempted, isLocked, onJoinSchool]);
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Attempting to join with code:", code);
     console.log("Available schools:", availableSchools.map(s => ({ name: s.name, code: s.inviteCode })));
 
-    const school = availableSchools.find(s => (s.inviteCode || '').toUpperCase() === code.trim().toUpperCase());
+    const school = availableSchools.find(s => (s.inviteCode || '').trim().toUpperCase() === code.trim().toUpperCase());
 
     if (!school) {
       console.warn("No school found matching code:", code);

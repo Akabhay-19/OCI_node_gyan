@@ -19,7 +19,7 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
   const [view, setView] = useState<'HOME' | 'LOGIN' | 'SIGNUP_DETAILS' | 'REGISTER_SCHOOL' | 'FORGOT_PASSWORD'>(initialView as any);
   const [signupData, setSignupData] = useState({ name: '', email: '', mobileNumber: '', rollNumber: '', username: '', password: '', className: '', stream: '', inviteCode: '' });
   const [schoolData, setSchoolData] = useState({ schoolName: '', adminName: '', adminEmail: '', password: '', mobileNumber: '', motto: '', address: '', city: '', state: '', pincode: '', logoUrl: '' });
-  const [loginRole, setLoginRole] = useState<UserRole | null>('STUDENT');
+  const [loginRole, setLoginRole] = useState<UserRole | null>(null);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -33,13 +33,13 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
             <Home className="w-4 h-4 mr-2" /> Homepage
           </NeonButton>
         )}
-        <div className="text-center space-y-6"><h2 className="text-6xl md:text-8xl font-display font-bold text-white tracking-tighter">GYAN<span className="text-neon-purple">.AI</span></h2><p className="text-xl text-gray-400">AI-Powered. Gamified. Data-Driven.</p></div>
+        <div className="text-center space-y-6"><h2 className="text-6xl md:text-8xl font-display font-bold text-white tracking-tighter">GYAN<span className="text-signal-orange">.AI</span></h2><p className="text-xl text-gray-400">AI-Powered. Gamified. Data-Driven.</p></div>
         <div className="flex flex-wrap justify-center gap-6 w-full max-w-4xl px-4">
           {showLoginButton && (
             <button onClick={() => setView('LOGIN')} className="group px-8 py-8 bg-white/5 border border-white/10 hover:border-neon-cyan/50 rounded-xl flex flex-col items-center gap-4 min-w-[200px]"><LogIn className="w-8 h-8 text-neon-cyan" /><span className="font-bold text-white">LOGIN</span></button>
           )}
-          <button onClick={() => setView('SIGNUP_DETAILS')} className="group px-8 py-8 bg-white/5 border border-white/10 hover:border-neon-purple/50 rounded-xl flex flex-col items-center gap-4 min-w-[200px]"><UserPlus className="w-8 h-8 text-neon-purple" /><span className="font-bold text-white">JOIN SCHOOL</span></button>
-          <button onClick={() => setView('REGISTER_SCHOOL')} className="group px-8 py-8 bg-gradient-to-br from-neon-purple/10 to-transparent border border-neon-purple/30 rounded-xl flex flex-col items-center gap-4 min-w-[200px]"><Building2 className="w-8 h-8 text-white" /><span className="font-bold text-white">CREATE SCHOOL</span></button>
+          <button onClick={() => setView('SIGNUP_DETAILS')} className="group px-8 py-8 bg-white/5 border border-white/10 hover:border-signal-orange/50 rounded-xl flex flex-col items-center gap-4 min-w-[200px]"><UserPlus className="w-8 h-8 text-signal-orange" /><span className="font-bold text-white">JOIN SCHOOL</span></button>
+          <button onClick={() => setView('REGISTER_SCHOOL')} className="group px-8 py-8 bg-gradient-to-br from-signal-orange/10 to-transparent border border-signal-orange/30 rounded-xl flex flex-col items-center gap-4 min-w-[200px]"><Building2 className="w-8 h-8 text-white" /><span className="font-bold text-white">CREATE SCHOOL</span></button>
         </div>
       </div>
     );
@@ -138,7 +138,7 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </NeonButton>
 
-        <NeonCard className="w-full max-w-2xl p-8 space-y-6" glowColor="purple">
+        <NeonCard className="w-full max-w-2xl p-8 space-y-6" glowColor="orange">
           <div className="text-center mb-6">
             <h3 className="text-3xl font-bold text-white">Create Your School</h3>
             <p className="text-gray-400 text-sm mt-2">Fill in the details to set up your school on Gyan.AI</p>
@@ -273,8 +273,8 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
               <Users className="w-12 h-12 text-neon-cyan" />
               <span className="font-bold text-white text-xl">TEACHER</span>
             </button>
-            <button onClick={() => setLoginRole('STUDENT')} className="group px-8 py-12 bg-white/5 border border-white/10 hover:border-neon-purple/50 rounded-xl flex flex-col items-center gap-4 hover:bg-white/10 transition-all">
-              <GraduationCap className="w-12 h-12 text-neon-purple" />
+            <button onClick={() => setLoginRole('STUDENT')} className="group px-8 py-12 bg-white/5 border border-white/10 hover:border-signal-orange/50 rounded-xl flex flex-col items-center gap-4 hover:bg-white/10 transition-all">
+              <GraduationCap className="w-12 h-12 text-signal-orange" />
               <span className="font-bold text-white text-xl">STUDENT</span>
             </button>
           </div>
@@ -285,7 +285,7 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] w-full relative">
         <NeonButton variant="ghost" onClick={() => setLoginRole(null as any)} className="absolute top-0 right-4 md:right-8"><ArrowLeft className="w-4 h-4 mr-2" /> Back</NeonButton>
-        <NeonCard className="w-full max-w-md p-8 space-y-6" glowColor={loginRole === 'TEACHER' ? 'cyan' : 'purple'}>
+        <NeonCard className="w-full max-w-md p-8 space-y-6" glowColor={loginRole === 'TEACHER' ? 'cyan' : 'orange'}>
           <h3 className="text-3xl font-bold text-white text-center">Join as {loginRole}</h3>
 
           <Input placeholder="Full Name" value={signupData.name} onChange={e => { setSignupData({ ...signupData, name: e.target.value }); }} />
@@ -320,7 +320,7 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
           )}
 
           <div className="relative">
-            <ScanLine className="absolute left-3 top-3.5 w-5 h-5 text-neon-purple/50" />
+            <ScanLine className="absolute left-3 top-3.5 w-5 h-5 text-signal-orange/50" />
             <Input
               placeholder="School Invite Code"
               value={signupData.inviteCode}

@@ -77,7 +77,16 @@ export const VoiceTutor: React.FC<VoiceTutorProps> = ({ onClose, contextClass })
                 : window.location.host;
 
             // If development and port 5173, point to backend 5000
-            const wsUrl = `${protocol}//${host.includes(':5173') ? host.replace(':5173', ':5000') : host}/gemini-stream`;
+            // If development and port 5173, point to backend 5000
+            let wsUrl = `${protocol}//${host.includes(':5173') ? host.replace(':5173', ':5000') : host}/gemini-stream`;
+
+            // Append context params if available
+            if (contextClass) {
+                const params = new URLSearchParams();
+                if (contextClass.grade) params.append('grade', contextClass.grade);
+                if (contextClass.subject) params.append('subject', contextClass.subject);
+                wsUrl += `?${params.toString()}`;
+            }
 
             console.log('[VoiceTutor] Connecting to:', wsUrl);
             const ws = new WebSocket(wsUrl);

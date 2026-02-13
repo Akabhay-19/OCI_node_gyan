@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api, DEFAULT_MODEL } from '../../services/api';
-import { StudyPlanItem, QuizQuestion, Student, WeaknessRecord } from '../../types';
+import { StudyPlanItem, QuizQuestion, Student, WeaknessRecord, LearningRecommendation } from '../../types';
 import { Bot, Sparkles, ArrowRight, Youtube, ExternalLink, AlertTriangle, BookOpen, Lightbulb, Mic, FileText, Headphones, XCircle, CheckCircle, CircleHelp, Link as LinkIcon, Menu, History, MessageSquare } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -10,13 +10,8 @@ import 'katex/dist/katex.min.css';
 import { VoiceTutor } from './VoiceTutor';
 import { NeonCard, NeonButton, Input } from '../UIComponents';
 import { HistorySidebar } from './HistorySidebar';
-import { getStudentRecommendation, LearningRecommendation } from '../../services/learningAlgorithm';
 import { RemedialModal } from './RemedialModal';
 import { XP_REWARDS, calculateLevel } from '../../services/gamification';
-import { knowledgeGraph } from '../../services/engine/KnowledgeGraph';
-import { masteryModel } from '../../services/engine/MasteryModel';
-import { gapDetector } from '../../services/engine/GapDetector';
-import { ConceptId, MasteryRecord } from '../../services/engine/types';
 
 const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
 
@@ -69,6 +64,7 @@ export const AdaptiveLearning: React.FC<AdaptiveLearningProps> = ({ onStartVoice
     const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
 
     const chatContainerRef = useRef<HTMLDivElement>(null);
+    const startTimeRef = useRef<number>(Date.now());
 
     useEffect(() => {
         if (chatMode && chatContainerRef.current) {
@@ -100,37 +96,12 @@ export const AdaptiveLearning: React.FC<AdaptiveLearningProps> = ({ onStartVoice
     const [preGeneratedQuiz, setPreGeneratedQuiz] = useState<QuizQuestion[] | null>(null);
 
     useEffect(() => {
-        if (currentUser) {
-            // [UPDATED] Pass context subject for context-aware recs
-            const basicRecs = getStudentRecommendation(currentUser, subject);
-
-            // --- KNOWLEDGE ENGINE SIMULATION ---
-            // In a real app, we'd fetch the user's persisted mastery map.
-            // Here, we simulate a state to demonstrate the engine's capabilities.
-            let engineRecs: LearningRecommendation[] = [];
-
-            if (subject === 'Physics' || subject === 'Science') {
-                const mockMastery = new Map<ConceptId, MasteryRecord>();
-
-                // Scenario: Student knows 1D Motion well, but fails F=ma (Newton's 2nd Law)
-                mockMastery.set('PHYS_MOTION_1D', { ...masteryModel.getInitialState('PHYS_MOTION_1D'), score: 0.95, attempts: 5 });
-                mockMastery.set('PHYS_NEWTON_2', { ...masteryModel.getInitialState('PHYS_NEWTON_2'), score: 0.4, attempts: 4 });
-
-                const gaps = gapDetector.detectGaps(mockMastery);
-
-                engineRecs = (gaps || []).map(gap => ({
-                    type: 'REMEDIAL',
-                    topic: knowledgeGraph.getNode(gap.conceptId)?.label || gap.conceptId,
-                    reason: `[AI ENGINE] ${gap.reason}`, // Tagged so user knows it's the new engine
-                    actionLabel: gap.recommendedAction,
-                    context: { gapType: gap.type, severity: gap.severity }
-                }));
-            }
-
-            // Merge: Engine Recs on TOP (High Precision) + Basic Recs below
-            setRecommendations([...engineRecs, ...basicRecs]);
+        if (currentUser?.id) {
+            api.getRecommendations(currentUser.id)
+                .then(setRecommendations)
+                .catch(err => console.error("Failed to fetch recommendations:", err));
         }
-    }, [currentUser, subject]); // Re-run when user or SUJECT changes
+    }, [currentUser?.id]);
 
     // [NEW] Auto-generate Quiz when Study Plan is ready
     useEffect(() => {
@@ -178,10 +149,17 @@ export const AdaptiveLearning: React.FC<AdaptiveLearningProps> = ({ onStartVoice
 
     const handleGenerate = async () => {
         if (!topic) return;
+
+        // [DIAGNOSTIC LOGGING]
+        console.log("[AdaptiveLearning] handleGenerate clicked. Topic:", topic);
+        console.log("[AdaptiveLearning] CurrentUser Prop:", currentUser);
+
         if (!currentUser?.id) {
+            console.error("[AdaptiveLearning] Student ID is MISSING!");
+            console.log("[AdaptiveLearning] Keys in currentUser:", Object.keys(currentUser || {}));
             alert("Error: Student ID is missing. History will not be saved. Please re-login.");
-            console.error("Student ID missing in AdaptiveLearning");
         }
+
         setLoading(true);
         setLoadingAction('PLAN');
         setError(null);
@@ -289,6 +267,7 @@ export const AdaptiveLearning: React.FC<AdaptiveLearningProps> = ({ onStartVoice
                 setQuizQuestions(questions);
                 setUserAnswers(new Array(questions.length).fill(-1));
                 setMode('QUIZ');
+                startTimeRef.current = Date.now();
             }
         } catch (e: any) {
             console.error(e);
@@ -309,64 +288,52 @@ export const AdaptiveLearning: React.FC<AdaptiveLearningProps> = ({ onStartVoice
         setQuizSubmitted(true);
         const score = quizQuestions.reduce((acc: number, q: QuizQuestion, i: number) => acc + (userAnswers[i] === q.correctAnswer ? 1 : 0), 0);
         setQuizScore(score);
-
-        // Dynamic Difficulty Adjustment (DDA)
-        const percentage = score / quizQuestions.length;
-        if (percentage >= 0.8) setDifficulty('Hard');
-        else if (percentage < 0.5) setDifficulty('Easy');
-        else setDifficulty('Medium');
-
-        // Award XP ( Bonus for Hard mode )
-        let earnedXp = XP_REWARDS.QUIZ_COMPLETION;
-        if (percentage >= 0.8) earnedXp += XP_REWARDS.QUIZ_PERFECT_SCORE;
-        if (difficulty === 'Hard') earnedXp += 10;
+        const timeTaken = (Date.now() - startTimeRef.current) / 1000;
+        const idealTime = quizQuestions.length * 60; // 1m per q
 
         if (currentUser) {
-            // 1. Submit to Backend for Analysis & Persistence
             setIsAnalyzing(true);
-            console.log("[QUIZ SUBMIT] Submitting to backend...");
+            try {
+                let detectedGaps: any[] = [];
+                try {
+                    const weakConcepts = await api.analyzeQuizResults(topic, quizQuestions, userAnswers);
+                    detectedGaps = weakConcepts.map((concept: string) => ({
+                        topic,
+                        subTopic: concept,
+                        gapType: 'KNOWLEDGE',
+                        severity: 'HIGH',
+                        atomicTopic: concept
+                    }));
+                    setAnalysis(weakConcepts);
+                } catch (e) { console.error("Analysis failed:", e); }
 
-            api.submitQuizResult(
-                currentUser.id,
-                topic,
-                userAnswers,
-                quizQuestions,
-                contextClass?.id,
-                'AI_LEARNING',
-                subject
-            ).then(res => {
-                console.log("[QUIZ SUBMIT] Backend response:", res);
+                await api.submitQuizResult({
+                    studentId: currentUser.id,
+                    topic,
+                    score,
+                    totalQuestions: quizQuestions.length,
+                    timeTaken,
+                    idealTime,
+                    sentiment: 'NEUTRAL',
+                    gaps: detectedGaps,
+                    classId: contextClass?.id
+                });
 
-                // Update local student state
                 if (onUpdateStudent) {
-                    const newHistory = (res.success && res.newGaps && res.newGaps.length > 0)
-                        ? [...(currentUser.weaknessHistory || []), ...res.newGaps]
-                        : currentUser.weaknessHistory;
-
-                    onUpdateStudent({
-                        ...currentUser,
-                        xp: (currentUser.xp || 0) + earnedXp,
-                        level: calculateLevel((currentUser.xp || 0) + earnedXp),
-                        weaknessHistory: newHistory
-                    });
-
-                    if (res.newGaps && Array.isArray(res.newGaps) && res.newGaps.length > 0) {
-                        setAnalysis(res.newGaps.map((g: any) => g.subTopic));
-                    }
-                }
-            }).catch(err => {
-                console.error("Failed to submit quiz result:", err);
-                // Fallback: Still award XP locally
-                if (onUpdateStudent) {
+                    const earnedXp = Math.round((score / quizQuestions.length) * 30);
                     onUpdateStudent({
                         ...currentUser,
                         xp: (currentUser.xp || 0) + earnedXp,
                         level: calculateLevel((currentUser.xp || 0) + earnedXp)
                     });
                 }
-            }).finally(() => {
+                if (currentUser.id) api.getRecommendations(currentUser.id).then(setRecommendations);
+
+            } catch (e) {
+                console.error("Quiz submission failed:", e);
+            } finally {
                 setIsAnalyzing(false);
-            });
+            }
         }
     };
 

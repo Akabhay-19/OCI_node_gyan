@@ -55,24 +55,16 @@ export const TeacherContentHub: React.FC<{ currentUser?: any; schoolName?: strin
         if (!topic || !subject) return;
         setIsGenerating(true);
         try {
-            // Using the raw fetch or api wrapper if available
-            const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
-
-            const res = await fetch(`${API_URL}/teacher/lesson-plan`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    topic,
-                    subject,
-                    gradeLevel,
-                    duration: '60 minutes',
-                    depth: 'Detailed',
-                    teacherId: currentUser?.id
-                })
+            const data = await api.generateLessonPlan({
+                topic,
+                subject,
+                gradeLevel,
+                duration: '60 minutes',
+                depth: 'Detailed',
+                teacherId: currentUser?.id
             });
 
-            if (res.ok) {
-                const data = await res.json();
+            if (data.markdown) {
                 setGeneratedContent(data.markdown);
             } else {
                 alert("Failed to generate lesson plan. Please try again.");
@@ -89,22 +81,15 @@ export const TeacherContentHub: React.FC<{ currentUser?: any; schoolName?: strin
         if (!topic || !subject) return;
         setIsGenerating(true);
         try {
-            const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
-
-            const res = await fetch(`${API_URL}/teacher/presentation`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    topic,
-                    subject,
-                    gradeLevel,
-                    description: presentationDescription,
-                    teacherId: currentUser?.id
-                })
+            const data = await api.generatePresentation({
+                topic,
+                subject,
+                gradeLevel,
+                description: presentationDescription,
+                teacherId: currentUser?.id
             });
 
-            if (res.ok) {
-                const data = await res.json();
+            if (data.slides) {
                 setGeneratedSlides(data.slides);
                 setCurrentSlideIndex(0);
                 setViewMode('PRESENTATION_PREVIEW');

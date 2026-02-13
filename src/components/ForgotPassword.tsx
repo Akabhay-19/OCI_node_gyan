@@ -78,9 +78,9 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, initialR
                 <ArrowLeft className="w-4 h-4 mr-2" /> Back to Login
             </NeonButton>
 
-            <NeonCard className="w-full max-w-md p-8 space-y-6" glowColor="purple">
+            <NeonCard className="w-full max-w-md p-8 space-y-6" glowColor="orange">
                 <div className="text-center">
-                    <KeyRound className="w-12 h-12 text-neon-purple mx-auto mb-4" />
+                    <KeyRound className="w-12 h-12 text-signal-orange mx-auto mb-4" />
                     <h3 className="text-2xl font-bold text-white">
                         {step === 'IDENTIFY' ? 'Forgot Password?' : 'Reset Password'}
                     </h3>
@@ -113,7 +113,7 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, initialR
                                 <button
                                     key={r}
                                     onClick={() => setRole(r)}
-                                    className={`py-2 text-xs font-bold rounded transition-all ${role === r ? 'bg-neon-purple text-white shadow-lg' : 'text-gray-400 hover:text-white'
+                                    className={`py-2 text-xs font-bold rounded transition-all ${role === r ? 'bg-signal-orange text-white shadow-lg' : 'text-gray-400 hover:text-white'
                                         }`}
                                 >
                                     {r}
