@@ -1,5 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { api } from './services/api';
 import { Layout } from './components/Layout';
 import { RoleSelection } from './components/RoleSelection';
@@ -43,6 +44,8 @@ const AppContent: React.FC = () => {
     isLoading, error,
     needsMigration, refreshData
   } = useAppData();
+
+  const [showMigration, setShowMigration] = useState(needsMigration);
 
   const {
     appState, setAppState,
@@ -542,18 +545,20 @@ const AppContent: React.FC = () => {
     if (!credentials) return;
 
     try {
-      // Authenticate using API for ALL roles
-      // For Parent, we pass role='PARENT' but asParent=true in api.login logic usually handles or we pass logic here.
-      // Actually RoleSelection passes { ..., asParent: true } for Parent.
-      // And api.login takes credentials.
-      // So we just pass credentials and role.
-      // Wait, RoleSelection passes role as first arg to onLogin.
-      // credentials object has username/password.
+      let user;
 
-      const loginPayload = { ...credentials, role };
-      const user = await api.login(loginPayload);
+      // [NEW] Handle Google OAuth Login
+      if (credentials.authProvider === 'google' && credentials.idToken) {
+        console.log('[Auth] Handling Google login...');
+        user = await api.googleLogin(credentials.idToken, role);
+      } else {
+        // Traditional password-based login
+        console.log('[Auth] Handling password login...');
+        const loginPayload = { ...credentials, role };
+        user = await api.login(loginPayload);
+      }
 
-      const userSchoolId = user.schoolId || user.school?.id; // backend might return flattened or nested
+      const userSchoolId = user.schoolId || user.school?.id;
       const userSchool = schools.find(s => s.id === userSchoolId);
 
       // Decide next route based on Role
@@ -715,11 +720,11 @@ const AppContent: React.FC = () => {
         hideHeader={false}
       >
         <>
-          {needsMigration && (
+          {showMigration && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: '#f59e0b', color: 'black', padding: '10px', textAlign: 'center', zIndex: 9999 }}>
               <span>We found local data. Do you want to sync it to the server?</span>
               <button onClick={handleMigration} style={{ marginLeft: '10px', padding: '5px 10px', background: 'black', color: 'white', border: 'none', cursor: 'pointer' }}>Sync Now</button>
-              <button onClick={() => setNeedsMigration(false)} style={{ marginLeft: '10px', padding: '5px 10px', background: 'transparent', border: '1px solid black', cursor: 'pointer' }}>Dismiss</button>
+              <button onClick={() => setShowMigration(false)} style={{ marginLeft: '10px', padding: '5px 10px', background: 'transparent', border: '1px solid black', cursor: 'pointer' }}>Dismiss</button>
             </div>
           )}
 
@@ -917,10 +922,18 @@ const DevLogin: React.FC<{ onLogin: (success: boolean) => void }> = ({ onLogin }
 
 // App wrapper that provides BrowserRouter context
 const App: React.FC = () => {
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  
+  if (!googleClientId) {
+    console.warn('[Google Auth] VITE_GOOGLE_CLIENT_ID not found in environment variables');
+  }
+
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </GoogleOAuthProvider>
   );
 };
 

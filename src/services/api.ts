@@ -183,6 +183,31 @@ export const api = {
         return data;
     },
 
+    // Google OAuth Login
+    googleLogin: async (idToken: string, role: string): Promise<any> => {
+        const res = await fetch(`${API_URL}/google-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken, role }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Google login failed');
+        }
+        const data = await res.json();
+
+        // [NEW] Persist Session & Token (same as password login)
+        if (data.id) {
+            localStorage.setItem('GYAN_USER_ID', data.id);
+            localStorage.setItem('GYAN_USER_ROLE', role || 'STUDENT');
+            if (data.schoolId) localStorage.setItem('GYAN_SCHOOL_ID', data.schoolId);
+            if (data.token) localStorage.setItem('GYAN_TOKEN', data.token);
+            localStorage.setItem('GYAN_AUTH_PROVIDER', 'google');
+        }
+
+        return data;
+    },
+
     getAuthHeaders: () => {
         const token = localStorage.getItem('GYAN_TOKEN') || localStorage.getItem('devToken');
         return {

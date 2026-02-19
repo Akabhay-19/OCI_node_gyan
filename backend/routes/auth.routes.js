@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import { generateToken } from '../middleware/auth.js';
 import { loginRules, devLoginRules, forgotPasswordRules, resetPasswordRules, validate } from '../middleware/validators.js';
+import { handleGoogleAuth } from '../services/google-auth.service.js';
 
 // Factory function to create auth routes with dependencies
 export const createAuthRoutes = (supabase, emailService) => {
@@ -156,6 +157,66 @@ export const createAuthRoutes = (supabase, emailService) => {
             res.json({ success: true });
         } catch (err) {
             res.status(500).json({ error: err.message });
+        }
+    });
+
+    // Google OAuth Login/Signup
+    router.post('/google-login', async (req, res) => {
+        const { idToken, role } = req.body;
+
+        if (!idToken || !role) {
+            return res.status(400).json({ error: 'idToken and role are required' });
+        }
+
+        try {
+            // Handle Google auth (create/link user)
+            const authResult = await handleGoogleAuth(supabase, idToken, role);
+
+            if (!authResult.success) {
+                return res.status(401).json({ error: authResult.error });
+            }
+
+            const user = authResult.user;
+            
+            // Generate JWT token for the app
+            const token = generateToken({
+                id: user.id,
+                email: user.email || user.adminEmail || user.username,
+                role: role,
+                authProvider: 'google',
+                schoolId: user.schoolId || user.id
+            });
+
+            // Return user data + JWT
+            if (role === 'ADMIN') {
+                res.json({
+                    id: user.id,
+                    name: user.name,
+                    email: user.adminEmail,
+                    role: 'ADMIN',
+                    schoolId: user.id,
+                    token,
+                    isNewUser: authResult.isNewUser,
+                    accountLinked: authResult.accountLinked || false
+                });
+            } else if (role === 'STUDENT') {
+                res.json({
+                    ...user,
+                    token,
+                    isNewUser: authResult.isNewUser,
+                    accountLinked: authResult.accountLinked || false
+                });
+            } else {
+                res.json({
+                    ...user,
+                    token,
+                    isNewUser: authResult.isNewUser,
+                    accountLinked: authResult.accountLinked || false
+                });
+            }
+        } catch (err) {
+            console.error('[Google Login Route] Error:', err);
+            res.status(500).json({ error: err.message || 'Google authentication failed' });
         }
     });
 

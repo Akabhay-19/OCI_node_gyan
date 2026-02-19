@@ -3,6 +3,7 @@ import { UserRole, Teacher } from '../types';
 import { NeonCard, NeonButton, Input } from './UIComponents';
 import { ForgotPassword } from './ForgotPassword';
 import { GraduationCap, Users, ShieldCheck, Baby, ArrowLeft, LogIn, UserPlus, ChevronRight, User, Mail, BookOpen, Rocket, Building2, Upload, ScanLine, Phone, MapPin, Camera, Home, CheckCircle } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 
 interface RoleSelectionProps {
   onSelectRole: (role: UserRole) => void;
@@ -22,6 +23,24 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
   const [loginRole, setLoginRole] = useState<UserRole | null>(null);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // [NEW] Handle Google Login
+  const handleGoogleLogin = async (credentialResponse: any) => {
+    if (!loginRole) {
+      alert('Please select a role first');
+      return;
+    }
+    try {
+      // credentialResponse.credential contains the Google ID token
+      onLogin(loginRole, "Nebula Academy", { 
+        idToken: credentialResponse.credential, 
+        authProvider: 'google' 
+      });
+    } catch (err: any) {
+      console.error('Google login error:', err);
+      alert('Google login failed: ' + err.message);
+    }
+  };
 
 
 
@@ -69,6 +88,17 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
               <Input placeholder="Username, Mobile, or User ID" value={signupData.username} onChange={e => setSignupData({ ...signupData, username: e.target.value })} />
               <Input type="password" placeholder="Password" value={signupData.password} onChange={e => setSignupData({ ...signupData, password: e.target.value })} />
               <NeonButton onClick={() => onLogin(loginRole, "Nebula Academy", { username: signupData.username, password: signupData.password })} className="w-full" glow>Login</NeonButton>
+              
+              {/* Google Login */}
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-gray-400 text-center">Or sign in with</p>
+                <div className="flex justify-center">
+                  <GoogleLogin
+                    onSuccess={handleGoogleLogin}
+                    onError={() => alert('Google login failed')}
+                  />
+                </div>
+              </div>
             </>
           ) : loginRole === 'TEACHER' ? (
             <>
@@ -82,6 +112,17 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
               >
                 Login as Teacher
               </NeonButton>
+              
+              {/* Google Login */}
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-gray-400 text-center">Or sign in with</p>
+                <div className="flex justify-center">
+                  <GoogleLogin
+                    onSuccess={handleGoogleLogin}
+                    onError={() => alert('Google login failed')}
+                  />
+                </div>
+              </div>
             </>
           ) : loginRole === 'PARENT' ? (
             <>
@@ -95,6 +136,17 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelectRole, onLo
               <Input placeholder="Admin Email" value={signupData.email} onChange={e => setSignupData({ ...signupData, email: e.target.value })} />
               <Input type="password" placeholder="Password" value={signupData.password} onChange={e => setSignupData({ ...signupData, password: e.target.value })} />
               <NeonButton onClick={() => onLogin(loginRole || 'ADMIN', "Nebula Academy", { email: signupData.email, password: signupData.password })} className="w-full" glow>Authenticate</NeonButton>
+              
+              {/* Google Login */}
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-gray-400 text-center">Or sign in with</p>
+                <div className="flex justify-center">
+                  <GoogleLogin
+                    onSuccess={handleGoogleLogin}
+                    onError={() => alert('Google login failed')}
+                  />
+                </div>
+              </div>
             </>
           )}
 
