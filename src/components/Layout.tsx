@@ -167,10 +167,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, logoUrl, userRole, cur
             <div className="p-6 bg-gradient-to-r from-neon-purple/10 to-transparent border-b border-white/5">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                  {currentUser.name.charAt(0)}
+                  {(currentUser.name || 'U').charAt(0)}
                 </div>
                 <div>
-                  <h3 className="font-bold text-white leading-tight">{currentUser.name}</h3>
+                  <h3 className="font-bold text-white leading-tight">{currentUser.name || 'User'}</h3>
                   <span className="text-xs font-bold text-neon-cyan px-2 py-0.5 rounded bg-neon-cyan/10 border border-neon-cyan/20 mt-1 inline-block">
                     {userRole}
                   </span>

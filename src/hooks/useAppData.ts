@@ -26,18 +26,39 @@ export const useAppData = () => {
             try {
                 schoolsRes = await api.getSchools(true);
             } catch (e) {
-                console.error("Public schools fetch failed:", e);
-                throw new Error("Failed to connect to the server. Please ensure the backend is running.");
+                console.warn("Public schools fetch failed:", e);
             }
 
+
+
             if (localStorage.getItem('GYAN_TOKEN')) {
+                const role = localStorage.getItem('GYAN_USER_ROLE');
                 try {
-                    [studentsRes, classroomsRes, announcementsRes, teachersRes] = await Promise.all([
-                        api.getStudents(),
-                        api.getClassrooms(),
-                        api.getAnnouncements(),
-                        api.getTeachers()
-                    ]);
+                    // Role-based optimized fetching
+                    if (role === 'ADMIN' || role === 'DEVELOPER') {
+                        // Admins still need a broad view, but we can eventually paginate these
+                        [studentsRes, classroomsRes, announcementsRes, teachersRes] = await Promise.all([
+                            api.getStudents(),
+                            api.getClassrooms(),
+                            api.getAnnouncements(),
+                            api.getTeachers()
+                        ]);
+                    } else if (role === 'TEACHER') {
+                        // Teachers need their classes and students
+                        [studentsRes, classroomsRes, announcementsRes] = await Promise.all([
+                            api.getStudents(), // Ideally filtered by teacher's classes on backend
+                            api.getClassrooms(),
+                            api.getAnnouncements()
+                        ]);
+                    } else if (role === 'STUDENT') {
+                        // Students primarily need their classes and announcements
+                        // We skip fetching ALL students/teachers to save bandwidth
+                        [classroomsRes, announcementsRes] = await Promise.all([
+                            api.getClassrooms(),
+                            api.getAnnouncements()
+                        ]);
+                        // Note: Rank calculation might need a specific small API hit instead of globalStudents
+                    }
                 } catch (e) {
                     console.warn("Protected data fetch failed (likely expired token). Clearing session.", e);
                     localStorage.removeItem('GYAN_TOKEN');
@@ -63,6 +84,7 @@ export const useAppData = () => {
                 setNeedsMigration(true);
             }
         } catch (e: any) {
+            console.error("[DATA ERROR]", e);
             setError(e.message || "Failed to load data");
         } finally {
             setIsLoading(false);

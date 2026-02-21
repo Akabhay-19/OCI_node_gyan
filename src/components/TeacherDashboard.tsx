@@ -1,15 +1,24 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { AssignmentDetailsModal } from './Features/AssignmentDetailsModal';
-import { TeacherAttendance } from './Features/TeacherAttendance';
+import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import { api } from '../services/api';
 import { NeonCard, NeonButton, Input } from './UIComponents';
 import { Student, Assignment, Classroom, Announcement, SchoolProfile, AssignmentType, AiAssignmentResponse, Teacher, UserRole } from '../types';
-import { api } from '../services/api';
-import { UserProfileModal } from './UserProfileModal';
-import { AssignClassesModal } from './AssignClassesModal';
-import { ClassDetailView } from './ClassDetailView';
-import { LeaderboardView } from './LeaderboardView';
-import { TeacherRemedialView } from './Features/TeacherRemedialView';
-import { TeacherContentHub } from './Features/TeacherContentHub';
+
+// Lazy load feature components
+const AssignmentDetailsModal = lazy(() => import('./Features/AssignmentDetailsModal').then(m => ({ default: m.AssignmentDetailsModal })));
+const TeacherAttendance = lazy(() => import('./Features/TeacherAttendance').then(m => ({ default: m.TeacherAttendance })));
+const UserProfileModal = lazy(() => import('./UserProfileModal').then(m => ({ default: m.UserProfileModal })));
+const AssignClassesModal = lazy(() => import('./AssignClassesModal').then(m => ({ default: m.AssignClassesModal })));
+const ClassDetailView = lazy(() => import('./ClassDetailView').then(m => ({ default: m.ClassDetailView })));
+const LeaderboardView = lazy(() => import('./LeaderboardView').then(m => ({ default: m.LeaderboardView })));
+const TeacherRemedialView = lazy(() => import('./Features/TeacherRemedialView').then(m => ({ default: m.TeacherRemedialView })));
+const TeacherContentHub = lazy(() => import('./Features/TeacherContentHub').then(m => ({ default: m.TeacherContentHub })));
+
+const DashboardFallback = () => (
+    <div className="min-h-[400px] flex flex-col items-center justify-center gap-4 animate-pulse">
+        <div className="w-12 h-12 border-4 border-neon-purple border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-gray-400 font-medium">Loading Dashboard...</p>
+    </div>
+);
 import { Users, BarChart2, Plus, UserSearch, LogOut, FileText, CalendarClock, Hourglass, Megaphone, Copy, Grid, Filter, Briefcase, Clock, UserCheck, Sparkles, Timer, Layers, CheckCircle, AlertTriangle, MoreVertical, Trash2, Target, BookOpen, ArrowLeft, ArrowRight, Upload, PieChart as PieChartIcon } from 'lucide-react';
 
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts';
@@ -397,11 +406,13 @@ const AdminClassesTab: React.FC<{
         return (
             <div className="space-y-6 animate-fade-in">
                 {selectedStudentForModal && (
-                    <UserProfileModal
-                        user={selectedStudentForModal}
-                        onClose={() => setSelectedStudentForModal(null)}
-                        role="STUDENT"
-                    />
+                    <Suspense fallback={null}>
+                        <UserProfileModal
+                            user={selectedStudentForModal}
+                            onClose={() => setSelectedStudentForModal(null)}
+                            role="STUDENT"
+                        />
+                    </Suspense>
                 )}
                 <div className="flex items-center gap-4 mb-6">
                     <button onClick={() => setView('SECTIONS')} className="text-gray-400 hover:text-white flex items-center gap-2">
@@ -517,13 +528,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
     // [NEW] Fetch Student History when a student is selected
     React.useEffect(() => {
         if (!selectedStudentId) return;
-        setSelectedGapCategory(null); // Reset gap category when student changes
-        setActiveRemedialTab('OPEN'); // Reset tab to OPEN
-        setShowGapAnalysis(false); // Reset analysis view
+        setSelectedGapCategory(null);
+        setActiveRemedialTab('OPEN');
+        setShowGapAnalysis(false);
         const fetchHistory = async () => {
             try {
-                const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
-                const res = await fetch(`${API_URL}/students/${selectedStudentId}/history`);
+                const res = await api.authFetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api')}/students/${selectedStudentId}/history`);
                 if (res.ok) {
                     const data = await res.json();
                     setStudentHistory(data);
@@ -635,10 +645,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
         };
 
         try {
-            const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
-            const res = await fetch(`${API_URL}/assignments`, {
+            const res = await api.authFetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api')}/assignments`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newAssignment)
             });
 
@@ -679,10 +687,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
         };
 
         try {
-            const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
-            const res = await fetch(`${API_URL}/assignments`, {
+            const res = await api.authFetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api')}/assignments`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newAssignment)
             });
 
@@ -706,8 +712,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
         const fetchAssignments = async () => {
             if (!currentUser?.id) return;
             try {
-                const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
-                const res = await fetch(`${API_URL}/teachers/${currentUser.id}/assignments`);
+                const res = await api.authFetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api')}/teachers/${currentUser.id}/assignments`);
                 if (res.ok) {
                     const data = await res.json();
                     setCreatedAssignments(data);
@@ -722,20 +727,24 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
     return (
         <div className="min-h-screen bg-dark-bg">
             {selectedAssignmentForView && (
-                <AssignmentDetailsModal
-                    assignment={selectedAssignmentForView}
-                    students={myAllStudents}
-                    onClose={() => setSelectedAssignmentForView(null)}
-                />
+                <Suspense fallback={<DashboardFallback />}>
+                    <AssignmentDetailsModal
+                        assignment={selectedAssignmentForView}
+                        students={myAllStudents}
+                        onClose={() => setSelectedAssignmentForView(null)}
+                    />
+                </Suspense>
             )}
 
             {selectedGapForView && (
-                <TeacherRemedialView
-                    gap={selectedGapForView}
-                    studentName={myAllStudents.find(s => s.id === selectedStudentId)?.name || 'Unknown Student'}
-                    onClose={() => setSelectedGapForView(null)}
-                    gradeLevel={myAllStudents.find(s => s.id === selectedStudentId)?.grade || 'Grade 10'}
-                />
+                <Suspense fallback={<DashboardFallback />}>
+                    <TeacherRemedialView
+                        gap={selectedGapForView}
+                        studentName={myAllStudents.find(s => s.id === selectedStudentId)?.name || 'Unknown Student'}
+                        onClose={() => setSelectedGapForView(null)}
+                        gradeLevel={myAllStudents.find(s => s.id === selectedStudentId)?.grade || 'Grade 10'}
+                    />
+                </Suspense>
             )}
 
             {/* New Redesigned Header */}

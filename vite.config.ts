@@ -17,18 +17,28 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+        "jwt-decode": "jwt-decode",
       }
     },
     build: {
       rollupOptions: {
         output: {
           manualChunks: {
-            vendor: ['react', 'react-dom', 'react-router-dom'],
-            ui: ['lucide-react', 'framer-motion'],
-            charts: ['recharts', 'd3']
+            'react-core': ['react', 'react-dom', 'react-router-dom'],
+            'ui-kit': ['lucide-react', 'framer-motion'],
+            'data-viz': ['recharts', 'd3'],
+            'utils': ['jwt-decode', 'bcryptjs', 'dotenv']
           }
         }
-      }
+      },
+      chunkSizeWarningLimit: 1000,
+      cssCodeSplit: true,
+      sourcemap: false,
+      minify: 'esbuild',
+      assetsInlineLimit: 4096
+    },
+    esbuild: {
+      drop: mode === 'production' ? ['console', 'debugger'] : [],
     }
   };
 });

@@ -46,6 +46,10 @@ validateEnv();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// --- PRODUCTION HARDENING ---
+app.set('trust proxy', 1); // Trust first-hop proxy (Vercel, Nginx, Cloudflare)
+app.disable('x-powered-by'); // Hide server technology
+
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
@@ -55,69 +59,84 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// --- SECURITY HARDENING ---
-// 1. CORS Whitelist
+// --- SECURITY MIDDLEWARE ---
+// 1. Strict CORS
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   'http://localhost:3000',
-  'http://localhost:3001',
   'http://localhost:5173',
-  'http://localhost:5174',
-  'http://127.0.0.1:3000',
-];
-const corsOptions = {
+  'http://192.168.1.9:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(cors({
   origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl) or if in whitelist
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.warn(`[Security] Blocked CORS request from: ${origin}`);
+      callback(new Error('Blocked by Security Policy (CORS)'));
     }
   },
   credentials: true,
-};
-app.use(cors(corsOptions));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 
-// 3. Security Headers
+// 2. Security Headers (Helmet)
 app.use(helmet({
-  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+  contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://*.googleapis.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      imgSrc: ["'self'", "data:", "https://*.supabase.co", "https://images.unsplash.com"],
-      connectSrc: ["'self'", "https://*.supabase.co", "https://api.gemini.ai", "https://openrouter.ai", "wss://*.gemini.ai"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://*.googleapis.com", "https://accounts.google.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://*.googleapis.com"],
+      imgSrc: ["'self'", "data:", "https://*.supabase.co", "https://images.unsplash.com", "https://*.googleusercontent.com"],
+      connectSrc: ["'self'", "https://*.supabase.co", "https://api.gemini.ai", "https://openrouter.ai", "wss://*.gemini.ai", "https://iazyudyiqxuovsvepzmr.supabase.co"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      frameSrc: ["'self'", "https://accounts.google.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     }
-  } : false,
+  },
   crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
 }));
 
-// 2. Rate Limiting
+// 3. Rate Limiting (Global Protection)
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Slightly higher for dashboard active use
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later.' },
+  handler: (req, res) => {
+    logger.warn(`[Security] Rate limit exceeded for IP: ${req.ip}`);
+    res.status(429).json({ error: 'Too many requests, please slow down.' });
+  }
 });
+
+// --- PERFORMANCE MONITORING ---
+app.use((req, res, next) => {
+  const start = process.hrtime();
+  res.on('finish', () => {
+    const elapsed = process.hrtime(start);
+    const durationInMs = (elapsed[0] * 1000 + elapsed[1] / 1e6).toFixed(2);
+    // Silent health checks to keep logs clean, but log everything else
+    if (req.originalUrl !== '/api/health' && req.originalUrl !== '/api') {
+      console.log(`[API] ${req.method} ${req.originalUrl} - ${res.statusCode} (${durationInMs}ms)`);
+    }
+    res.setHeader('X-Response-Time', `${durationInMs}ms`);
+  });
+  next();
+});
+
 app.use('/api', apiLimiter);
 
-// 2.5 Compression
+// 4. Gzip Compression (Speed up responses)
 app.use(compression());
 
-// --- 1. Public Base Routes ---
-app.get('/api', (req, res) => res.json({
-  status: "running",
-  version: "1.2.0",
-  message: "Gyan AI API is active.",
-  timestamp: new Date().toISOString()
-}));
-app.get('/', (req, res) => res.send("Gyan AI Backend is active."));
-
-// Standard Middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+// 5. Strict Body Limits
+app.use(express.json({ limit: '20kb' })); // Small limit for typical JSON
+app.use(express.urlencoded({ limit: '20kb', extended: true }));
 
 // Multer Config
 const upload = multer({ dest: 'uploads/' });
@@ -154,6 +173,25 @@ app.post('/api/analyze-quiz', (req, res, next) => {
   next();
 }, createQuizRoutes(aiService, supabase, helpers));
 
+// --- 1. Public & Monitoring Routes ---
+// Health Check (for Monitoring/Load Balancers)
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'UP',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage().heapUsed,
+    env: process.env.NODE_ENV
+  });
+});
+
+app.get('/api', (req, res) => res.json({
+  status: "running",
+  version: "1.2.0",
+  message: "Gyan AI API is active.",
+  timestamp: new Date().toISOString()
+}));
+
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -167,7 +205,14 @@ if (process.env.NODE_ENV === 'production') {
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  logger.error(`[Global Error] ${err.message}`, { stack: err.stack });
+  logger.error(`[Global Error] ${err.message}`, {
+    error: err.message,
+    status: err.status || 500,
+    stack: process.env.NODE_ENV === 'production' ? 'Production stack trace hidden' : err.stack,
+    path: req.path,
+    method: req.method,
+    ip: req.ip
+  });
   const isProd = process.env.NODE_ENV === 'production';
 
   res.status(err.status || 500).json({

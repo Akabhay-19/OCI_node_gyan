@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { UserRole, Student, Classroom, SchoolProfile, Teacher, Assignment, Announcement } from '../types';
 import { NeonCard, NeonButton, Input } from './UIComponents';
 import {
@@ -8,9 +8,18 @@ import {
     Trash2, Lock, Unlock, UserPlus, Search, RotateCcw, Award, Star, Medal,
     AlertTriangle, ArrowRight
 } from 'lucide-react';
-import { AttendanceView } from './Features/AttendanceView';
-import { AssignClassesModal } from './AssignClassesModal';
-import { StudentAnalyticsModal } from './StudentAnalyticsModal';
+import { api } from '../services/api';
+
+// Lazy load feature components
+const AttendanceView = lazy(() => import('./Features/AttendanceView').then(m => ({ default: m.AttendanceView })));
+const AssignClassesModal = lazy(() => import('./AssignClassesModal').then(m => ({ default: m.AssignClassesModal })));
+const StudentAnalyticsModal = lazy(() => import('./StudentAnalyticsModal').then(m => ({ default: m.StudentAnalyticsModal })));
+
+const DashboardFallback = () => (
+    <div className="min-h-[400px] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-neon-cyan border-t-transparent rounded-full animate-spin"></div>
+    </div>
+);
 
 interface AdminDashboardProps {
     schoolName: string;
@@ -47,8 +56,7 @@ const TeacherClassDetailView: React.FC<{
     useEffect(() => {
         const fetchAssignments = async () => {
             try {
-                const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
-                const res = await fetch(`${API_URL}/assignments?classId=${classroom.id}`);
+                const res = await api.authFetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api')}/assignments?classId=${classroom.id}`);
                 if (res.ok) {
                     const data = await res.json();
                     setAssignments(data);
@@ -394,20 +402,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                     <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
                         {displayList.map((teacher: any, i: number) => {
-                            // Check status
-                            const dateStr = new Date().toLocaleDateString();
-                            // Check for specific LEAVE record
-                            const leaveStatus = localStorage.getItem(`teacher_status_${teacher.id}_${dateStr}`);
-
+                            // Default status logic (until Teacher Attendance API is implemented)
                             let statusBadge = <div className="px-3 py-1 bg-green-500/10 text-green-400 text-xs rounded-full border border-green-500/20">Present</div>;
 
-                            if (leaveStatus === 'LEAVE') {
-                                statusBadge = <div className="px-3 py-1 bg-red-500/10 text-red-400 text-xs rounded-full border border-red-500/20">On Leave</div>;
-                            } else {
-                                // Can also check if sunday
-                                if (new Date().getDay() === 0) {
-                                    statusBadge = <div className="px-3 py-1 bg-orange-500/10 text-orange-400 text-xs rounded-full border border-orange-500/20">Holiday</div>;
-                                }
+                            // Check if Sunday
+                            if (new Date().getDay() === 0) {
+                                statusBadge = <div className="px-3 py-1 bg-orange-500/10 text-orange-400 text-xs rounded-full border border-orange-500/20">Holiday</div>;
                             }
 
                             return (
@@ -505,7 +505,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <button onClick={() => setSelectedStudent(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><ArrowLeft /></button>
                             <h2 className="text-2xl font-bold text-white">Attendance History: {selectedStudent.name}</h2>
                         </div>
-                        <AttendanceView student={selectedStudent} />
+                        <Suspense fallback={<DashboardFallback />}>
+                            <AttendanceView student={selectedStudent} />
+                        </Suspense>
                     </div>
                 );
             }
@@ -818,16 +820,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                         {/* Assign Classes Modal */}
                         {showAssignModal && selectedTeacher && onUpdateTeacher && (
-                            <AssignClassesModal
-                                teacher={selectedTeacher}
-                                availableClasses={classrooms}
-                                onSave={async (teacherId, classIds) => {
-                                    await onUpdateTeacher(teacherId, classIds);
-                                    setSelectedTeacher({ ...selectedTeacher, assignedClasses: classIds });
-                                    setShowAssignModal(false);
-                                }}
-                                onClose={() => setShowAssignModal(false)}
-                            />
+                            <Suspense fallback={null}>
+                                <AssignClassesModal
+                                    teacher={selectedTeacher}
+                                    availableClasses={classrooms}
+                                    onSave={async (teacherId, classIds) => {
+                                        await onUpdateTeacher(teacherId, classIds);
+                                        setSelectedTeacher({ ...selectedTeacher, assignedClasses: classIds });
+                                        setShowAssignModal(false);
+                                    }}
+                                    onClose={() => setShowAssignModal(false)}
+                                />
+                            </Suspense>
                         )}
                     </div>
                 )}
@@ -1845,10 +1849,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Student Analytics Modal */}
             {
                 showStudentAnalytics && (
-                    <StudentAnalyticsModal
-                        student={showStudentAnalytics}
-                        onClose={() => setShowStudentAnalytics(null)}
-                    />
+                    <Suspense fallback={null}>
+                        <StudentAnalyticsModal
+                            student={showStudentAnalytics}
+                            onClose={() => setShowStudentAnalytics(null)}
+                        />
+                    </Suspense>
                 )
             }
 

@@ -25,6 +25,8 @@ export interface Teacher {
   mobileNumber?: string;
   password?: string; // [NEW] For authentication
   assignedClasses: string[]; // List of class IDs or Names
+  google_id?: string;
+  auth_provider?: string;
 }
 
 export interface Parent {
@@ -82,6 +84,8 @@ export interface SchoolProfile {
   maxStudents?: number; // Optional - no limit by default
   plan: SubscriptionTier;
   faculty?: Teacher[];
+  google_id?: string;
+  auth_provider?: string;
 }
 
 // --- Learning Types ---
@@ -168,6 +172,8 @@ export interface Student {
   xp?: number; // [NEW] Gamification
   level?: number; // [NEW] Gamification
   createdAt?: string; // Joining date for attendance tracking
+  google_id?: string;
+  auth_provider?: string;
 }
 
 export type AssignmentType = 'MCQ' | 'SUBJECTIVE' | 'Quiz' | 'UPLOAD' | 'MIXED';
