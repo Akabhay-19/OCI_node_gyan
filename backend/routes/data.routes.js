@@ -157,7 +157,15 @@ export const createDataRoutes = (supabase) => {
 
     router.get('/schools', async (req, res) => {
         try {
-            const { data: schools, error } = await supabase.from('schools').select('*');
+            // For general users, return only their school or limited list
+            // For scalability, we don't return ALL schools to EVERY user
+            let query = supabase.from('schools').select('*');
+
+            if (req.user.role !== 'DEVELOPER') {
+                query = query.eq('id', req.user.schoolId);
+            }
+
+            const { data: schools, error } = await query;
             if (error) throw error;
             res.json(schools);
         } catch (err) {
@@ -168,7 +176,14 @@ export const createDataRoutes = (supabase) => {
     // --- Teachers ---
     router.get('/teachers', async (req, res) => {
         try {
-            const { data, error } = await supabase.from('teachers').select('*');
+            let query = supabase.from('teachers').select('*');
+
+            // Filter by schoolId for data isolation and performance
+            if (req.user.role !== 'DEVELOPER') {
+                query = query.eq('schoolId', req.user.schoolId);
+            }
+
+            const { data, error } = await query;
             if (error) throw error;
             res.json(data);
         } catch (err) {
@@ -191,7 +206,20 @@ export const createDataRoutes = (supabase) => {
     // --- Students ---
     router.get('/students', async (req, res) => {
         try {
-            const { data, error } = await supabase.from('students').select('*');
+            const { classId } = req.query;
+            let query = supabase.from('students').select('*');
+
+            // Filter by schoolId for data isolation
+            if (req.user.role !== 'DEVELOPER') {
+                query = query.eq('schoolId', req.user.schoolId);
+            }
+
+            // Optional: Filter by classId for granular on-demand loading
+            if (classId) {
+                query = query.or(`classId.eq.${classId},classIds.cs.{${classId}}`);
+            }
+
+            const { data, error } = await query;
             if (error) throw error;
             res.json(data);
         } catch (err) {
@@ -235,7 +263,14 @@ export const createDataRoutes = (supabase) => {
     // --- Classrooms ---
     router.get('/classrooms', async (req, res) => {
         try {
-            const { data, error } = await supabase.from('classrooms').select('*');
+            let query = supabase.from('classrooms').select('*');
+
+            // Data isolation: Classrooms should only be fetched for the user's school
+            if (req.user.role !== 'DEVELOPER') {
+                query = query.eq('schoolId', req.user.schoolId);
+            }
+
+            const { data, error } = await query;
             if (error) throw error;
             res.json(data);
         } catch (err) {

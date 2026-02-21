@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GYAN AI - Visual Architecture Blueprint</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #020617;
+            --card-bg: rgba(15, 23, 42, 0.7);
+            --neon-cyan: #00f3ff;
+            --neon-purple: #bc13fe;
+            --neon-orange: #ff5f1f;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 40px;
+            overflow-x: auto;
+        }
+
+        /* Print Settings for PDF */
+        @media print {
+            body { padding: 0; margin: 0; background: #000; }
+            .no-print { display: none; }
+            .artifact-container { width: 297mm; height: 210mm; } /* A4 Landscape approx */
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* The Blueprint Grid */
+        .blueprint-container {
+            display: flex;
+            flex-direction: column;
+            gap: 120px;
+            position: relative;
+            min-width: 1400px;
+            padding: 20px;
+        }
+
+        /* Flow Lines (SVG) */
+        .connector-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Screen Mockup Styles */
+        .screen-wrapper {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            gap: 40px;
+        }
+
+        .laptop-frame {
+            width: 420px;
+            height: 280px;
+            background: #1e293b;
+            border: 8px solid #334155;
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .laptop-frame::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: -10%;
+            width: 120%;
+            height: 8px;
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .screen-header {
+            height: 15px;
+            background: #334155;
+            display: flex;
+            padding: 2px 8px;
+            gap: 4px;
+        }
+        .dot { width: 6px; height: 6px; border-radius: 50%; }
+        .red { background: #ff5f56; }
+        .yellow { background: #ffbd2e; }
+        .green { background: #27c93f; }
+
+        .screen-content {
+            flex: 1;
+            padding: 10px;
+            background: var(--bg-dark);
+            font-size: 8px;
+            position: relative;
+        }
+
+        /* Page specific visual mocks */
+        .nav-bar { width: 100%; height: 12px; background: rgba(255,255,255,0.05); margin-bottom: 10px; border-radius: 2px; }
+        .hero { width: 70%; height: 40px; background: linear-gradient(45deg, var(--neon-cyan), transparent); margin: 0 auto 15px; border-radius: 4px; }
+        .button-mock { width: 40px; height: 12px; background: var(--neon-cyan); border-radius: 2px; margin: 0 auto; box-shadow: 0 0 10px var(--neon-cyan); }
+        
+        .role-cards { display: flex; gap: 10px; justify-content: center; margin-top: 20px; }
+        .role-card { width: 80px; height: 120px; border: 1px solid var(--glass-border); border-radius: 4px; padding: 5px; text-align: center; }
+        .role-icon { width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.1); margin: 10px auto; }
+        
+        .dashboard-layout { display: flex; height: 100%; }
+        .sidebar-mock { width: 60px; height: 100%; border-right: 1px solid var(--glass-border); padding: 5px; }
+        .sidebar-item { width: 100%; height: 8px; background: rgba(255,255,255,0.05); margin-bottom: 8px; border-radius: 1px; }
+        .main-mock { flex: 1; padding: 10px; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+        .stat-card { background: rgba(255,255,255,0.05); height: 40px; border-radius: 4px; }
+        .ai-chat { position: absolute; bottom: 10px; right: 10px; width: 60px; height: 80px; background: var(--card-bg); border: 1px solid var(--neon-purple); border-radius: 2px; box-shadow: 0 0 15px rgba(188, 19, 254, 0.3); }
+
+        /* Captions */
+        .caption {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .caption b { color: var(--neon-cyan); font-size: 1.1rem; display: block; margin-bottom: 8px; }
+        .caption p { margin: 0; font-size: 0.9rem; color: var(--text-dim); }
+
+        .label-tag {
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--neon-cyan);
+            border: 1px solid var(--neon-cyan);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        /* Flow Indicator */
+        .flow-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .arrow-down {
+            width: 2px;
+            height: 80px;
+            background: linear-gradient(to bottom, var(--neon-cyan), var(--neon-purple));
+            position: relative;
+            margin: 20px 0;
+        }
+        .arrow-down::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: -4px;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 8px solid var(--neon-purple);
+        }
+
+        .badge-dev { border-color: var(--neon-orange); color: var(--neon-orange); }
+        .badge-auth { border-color: var(--neon-purple); color: var(--neon-purple); }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>GYAN AI - Visual System Architecture</h1>
+        <p class="subtitle">Complete Frontend Flow & Page Connectivity Map for the Next-Gen Educational Platform.</p>
+        <p class="no-print" style="margin-top: 20px; color: var(--neon-orange); font-size: 0.9rem;">(Use <b>Ctrl + P</b> and select <b>"Save as PDF"</b> to export this blueprint)</p>
+    </header>
+
+    <div class="blueprint-container">
+        
+        <!-- STEP 1: PUBLIC GATEWAY -->
+        <div class="flow-step">
+            <div class="screen-wrapper">
+                <div class="laptop-view">
+                    <div class="laptop-frame">
+                        <div class="screen-header">
+                            <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+                        </div>
+                        <div class="screen-content">
+                            <div class="nav-bar"></div>
+                            <div class="hero"></div>
+                            <div style="text-align:center; padding: 10px;">
+                                <div style="height: 10px; width: 40%; background: #334155; margin: 0 auto 10px;"></div>
+                                <div class="button-mock"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">
+                        <span class="label-tag">/</span>
+                        <b>Landing Page (Home.tsx)</b>
+                        <p>Core Marketing, Navigation, & Entry Gateway</p>
+                    </div>
+                </div>
+
+                <div class="no-print" style="align-self: center; color: var(--text-dim);">
+                    <svg width="100" height="40">
+                        <path d="M0 20 L90 20" stroke="url(#cyan-grad)" stroke-width="2" fill="none" stroke-dasharray="4"/>
+                        <circle cx="90" cy="20" r="3" fill="var(--neon-cyan)"/>
+                    </svg>
+                </div>
+
+                <div class="laptop-view">
+                    <div class="laptop-frame" style="border-color: var(--neon-purple);">
+                        <div class="screen-header">
+                            <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+                        </div>
+                        <div class="screen-content">
+                            <div style="text-align:center; margin-top: 10px; color:white; font-size: 10px;">Select Your Role</div>
+                            <div class="role-cards">
+                                <div class="role-card"><div class="role-icon"></div>Student</div>
+                                <div class="role-card"><div class="role-icon"></div>Teacher</div>
+                                <div class="role-card"><div class="role-icon"></div>Admin</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">
+                        <span class="label-tag badge-auth">/auth</span>
+                        <b>Role Selection (Auth Hub)</b>
+                        <p>Credentials check & Role-based routing logic</p>
+                    </div>
+                </div>
+            </div>
+            <div class="arrow-down"></div>
+        </div>
+
+        <!-- STEP 2: ONBOARDING -->
+        <div class="flow-step">
+            <div class="screen-wrapper">
+                <div class="laptop-view">
+                    <div class="laptop-frame">
+                        <div class="screen-header">
+                            <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+                        </div>
+                        <div class="screen-content">
+                            <div style="padding: 20px;">
+                                <div style="height: 15px; width: 60%; background: #334155; margin-bottom: 20px;"></div>
+                                <div style="height: 25px; width: 100%; border: 1px solid #334155; margin-bottom: 10px;"></div>
+                                <div class="button-mock" style="width: 100%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">
+                        <span class="label-tag">/join-school</span>
+                        <b>Onboarding Phase I</b>
+                        <p>New users join via Unique School Code</p>
+                    </div>
+                </div>
+
+                <div class="laptop-view">
+                    <div class="laptop-frame">
+                        <div class="screen-header">
+                            <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+                        </div>
+                        <div class="screen-content">
+                            <div style="padding: 10px;">
+                                <div style="height: 10px; width: 40%; background: #334155; margin-bottom: 15px;"></div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                                    <div style="height: 30px; background: rgba(255,255,255,0.05); border: 1px dotted #00f3ff;"></div>
+                                    <div style="height: 30px; background: rgba(255,255,255,0.05); border: 1px dotted #00f3ff;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">
+                        <span class="label-tag">/class-selection</span>
+                        <b>Onboarding Phase II</b>
+                        <p>Students select available class sections</p>
+                    </div>
+                </div>
+            </div>
+            <div class="arrow-down" style="height: 80px;"></div>
+        </div>
+
+        <!-- STEP 3: CORE DASHBOARDS -->
+        <div class="flow-step">
+            <div class="screen-wrapper" style="gap: 100px;">
+                
+                <!-- STUDENT DASHBOARD -->
+                <div class="laptop-view">
+                    <div class="laptop-frame" style="border-color: var(--neon-cyan);">
+                        <div class="screen-header">
+                            <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+                        </div>
+                        <div class="screen-content">
+                            <div class="dashboard-layout">
+                                <div class="sidebar-mock">
+                                    <div class="sidebar-item" style="background: var(--neon-cyan)"></div>
+                                    <div class="sidebar-item"></div>
+                                    <div class="sidebar-item"></div>
+                                </div>
+                                <div class="main-mock">
+                                    <div class="stat-grid">
+                                        <div class="stat-card"></div><div class="stat-card"></div>
+                                    </div>
+                                    <div style="height: 100px; background: rgba(255,255,255,0.03); border-radius: 8px;"></div>
+                                </div>
+                            </div>
+                            <div class="ai-chat"></div>
+                        </div>
+                    </div>
+                    <div class="caption">
+                        <span class="label-tag">/dashboard (Student)</span>
+                        <b>Student Control Center</b>
+                        <p>AI Learning, Quiz Hub, & Academic History</p>
+                    </div>
+                </div>
+
+                <!-- TEACHER DASHBOARD -->
+                <div class="laptop-view">
+                    <div class="laptop-frame" style="border-color: var(--neon-purple);">
+                        <div class="screen-header">
+                            <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+                        </div>
+                        <div class="screen-content">
+                            <div class="dashboard-layout">
+                                <div class="sidebar-mock" style="background: rgba(188, 19, 254, 0.05);">
+                                    <div class="sidebar-item" style="background: var(--neon-purple)"></div>
+                                    <div class="sidebar-item"></div>
+                                    <div class="sidebar-item"></div>
+                                </div>
+                                <div class="main-mock">
+                                    <div style="height: 15px; width: 60%; background: #334155; margin-bottom: 20px;"></div>
+                                    <div style="height: 100px; display: grid; gap: 4px;">
+                                        <div style="height: 12px; background: rgba(0, 243, 255, 0.1);"></div>
+                                        <div style="height: 12px; background: rgba(255,255,255,0.03);"></div>
+                                        <div style="height: 12px; background: rgba(255,255,255,0.03);"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">
+                        <span class="label-tag">/dashboard/overview</span>
+                        <b>Faculty Command Hub</b>
+                        <p>Attendance Tracking & AI Content Generation</p>
+                    </div>
+                </div>
+
+                <!-- ADMIN/DEVELOPER -->
+                <div class="laptop-view">
+                    <div class="laptop-frame" style="border-color: var(--neon-orange);">
+                        <div class="screen-header">
+                            <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+                        </div>
+                        <div class="screen-content" style="background: #000;">
+                            <div style="padding: 10px; font-family: 'JetBrains Mono'; color: var(--neon-orange); font-size: 7px;">
+                                > SYSTEM STATUS: OK<br>
+                                > AI_PROVIDER: OPENROUTER<br>
+                                > ACTIVE_NODES: 4
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">
+                        <span class="label-tag badge-dev">/developer</span>
+                        <b>System Control (Dev Console)</b>
+                        <p>AI Model Configuration & System Health Monitoring</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Hidden SVG Colors -->
+    <svg style="width:0; height:0; position:absolute;">
+        <defs>
+            <linearGradient id="cyan-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:var(--neon-cyan);stop-opacity:1" />
+                <stop offset="100%" style="stop-color:var(--neon-purple);stop-opacity:1" />
+            </linearGradient>
+        </defs>
+    </svg>
+
+    <footer style="margin-top: 100px; border-top: 1px solid var(--glass-border); padding-top: 40px; color: var(--text-dim); text-align: center; font-size: 0.8rem;">
+        <p>© 2026 GYAN AI - Advanced Agentic Coding Architecture | Confidential Documentation</p>
+    </footer>
+
+</body>
+</html>

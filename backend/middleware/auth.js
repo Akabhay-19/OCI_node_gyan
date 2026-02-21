@@ -26,7 +26,7 @@ export const verifyToken = (req, res, next) => {
     if (!token) {
         console.log(`[Auth] 401: No token provided. Path: ${req.path}`);
         console.log(`[Auth] Header received: ${authHeader}`);
-        return res.status(401).json({ error: 'Access denied. No token provided.' });
+        return res.status(401).json({ error: 'AuthMiddleware: Access denied. No token provided.' });
     }
 
     try {

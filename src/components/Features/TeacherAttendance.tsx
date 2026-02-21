@@ -36,62 +36,43 @@ export const TeacherAttendance: React.FC<TeacherAttendanceProps> = ({ classrooms
             // CHECK YESTERDAY'S ATTENDANCE FROM DATABASE
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayData = await api.getAttendance(classId, yesterday.toLocaleDateString());
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const yesterdayData = await api.getAttendance(classId, yesterdayStr);
 
             // If yesterday was not a Sunday and no records exist, prompt
             if (yesterday.getDay() !== 0 && yesterdayData.count === 0) {
-                // Also check localStorage fallback
-                const yesterdayKey = `attendance_${classId}_${yesterday.toLocaleDateString()}`;
-                if (!localStorage.getItem(yesterdayKey)) {
-                    setMissedDate(yesterday.toLocaleDateString());
-                    setShowMissedPrompt(true);
-                }
+                setMissedDate(yesterdayStr);
+                setShowMissedPrompt(true);
             }
 
             // CHECK TODAY'S ATTENDANCE FROM DATABASE
-            const todayData = await api.getAttendance(classId, new Date().toLocaleDateString());
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayData = await api.getAttendance(classId, todayStr);
 
             if (todayData.count > 0) {
                 setAttendanceData(todayData.records as Record<string, 'PRESENT' | 'ABSENT' | 'HOLIDAY'>);
                 setIsSaved(true);
             } else {
-                // Fallback: Check localStorage for offline data
-                const todayKey = `attendance_${classId}_${new Date().toLocaleDateString()}`;
-                const savedData = localStorage.getItem(todayKey);
-
-                if (savedData) {
-                    setAttendanceData(JSON.parse(savedData));
+                // AUTO-DETECT SUNDAY
+                const today = new Date();
+                if (today.getDay() === 0) {
+                    const holidayData: Record<string, 'HOLIDAY'> = {};
+                    students.filter(s => s.classId === classId).forEach(s => {
+                        holidayData[s.id] = 'HOLIDAY';
+                    });
+                    setAttendanceData(holidayData);
+                    // Auto-save Sunday as holiday
+                    await handleAutoSaveHoliday(classId, holidayData);
                     setIsSaved(true);
                 } else {
-                    // AUTO-DETECT SUNDAY
-                    const today = new Date();
-                    if (today.getDay() === 0) {
-                        const holidayData: Record<string, 'HOLIDAY'> = {};
-                        students.filter(s => s.classId === classId).forEach(s => {
-                            holidayData[s.id] = 'HOLIDAY';
-                        });
-                        setAttendanceData(holidayData);
-                        // Auto-save Sunday as holiday
-                        await handleAutoSaveHoliday(classId, holidayData);
-                        setIsSaved(true);
-                    } else {
-                        setAttendanceData({});
-                        setIsSaved(false);
-                    }
+                    setAttendanceData({});
+                    setIsSaved(false);
                 }
             }
         } catch (error) {
             console.error('Error loading attendance:', error);
-            // Fallback to localStorage on API error
-            const todayKey = `attendance_${classId}_${new Date().toLocaleDateString()}`;
-            const savedData = localStorage.getItem(todayKey);
-            if (savedData) {
-                setAttendanceData(JSON.parse(savedData));
-                setIsSaved(true);
-            } else {
-                setAttendanceData({});
-                setIsSaved(false);
-            }
+            setAttendanceData({});
+            setIsSaved(false);
         } finally {
             setIsLoading(false);
         }
@@ -103,36 +84,35 @@ export const TeacherAttendance: React.FC<TeacherAttendanceProps> = ({ classrooms
         try {
             await api.saveAttendance(classId, activeClass?.schoolId, new Date().toISOString(), holidayData, teacherId);
         } catch (error) {
-            console.error('Failed to auto-save holiday, using localStorage fallback');
-            const todayKey = `attendance_${classId}_${new Date().toLocaleDateString()}`;
-            localStorage.setItem(todayKey, JSON.stringify(holidayData));
+            console.error('Failed to auto-save holiday');
         }
     };
 
-    const resolveMissed = (type: 'HOLIDAY' | 'LEAVE') => {
+    const resolveMissed = async (type: 'HOLIDAY' | 'LEAVE') => {
         if (!selectedClassId) return;
-        const key = `attendance_${selectedClassId}_${missedDate}`;
 
         if (type === 'HOLIDAY') {
-            // Save generic holiday data
+            // Save generic holiday data to DB
             const holidayData: Record<string, 'HOLIDAY'> = {};
             students.filter(s => s.classId === selectedClassId).forEach(s => {
                 holidayData[s.id] = 'HOLIDAY';
             });
-            localStorage.setItem(key, JSON.stringify(holidayData));
-        } else {
-            // LEAVE logic: Mark Teacher Absent
-            if (teacherId) {
-                const teacherKey = `teacher_status_${teacherId}_${missedDate}`;
-                localStorage.setItem(teacherKey, 'LEAVE');
+            try {
+                await api.saveAttendance(selectedClassId, activeClass?.schoolId, new Date(missedDate).toISOString(), holidayData, teacherId);
+            } catch (e) {
+                console.error("Failed to resolve missed date as holiday", e);
             }
-
-            const leaveData: Record<string, 'HOLIDAY'> = {}; // Reuse holiday status for students
+        } else {
+            // LEAVE logic: For now, just mark student records as holiday/leave
+            const leaveData: Record<string, 'HOLIDAY'> = {};
             students.filter(s => s.classId === selectedClassId).forEach(s => {
                 leaveData[s.id] = 'HOLIDAY';
             });
-            localStorage.setItem(key, JSON.stringify(leaveData));
-            console.log(`Teacher marked LEAVE for ${missedDate}`);
+            try {
+                await api.saveAttendance(selectedClassId, activeClass?.schoolId, new Date(missedDate).toISOString(), leaveData, teacherId);
+            } catch (e) {
+                console.error("Failed to resolve missed date as leave", e);
+            }
         }
         setShowMissedPrompt(false);
     };
@@ -176,10 +156,6 @@ export const TeacherAttendance: React.FC<TeacherAttendanceProps> = ({ classrooms
                 teacherId
             );
 
-            // Also save to localStorage as backup
-            const todayKey = `attendance_${selectedClassId}_${new Date().toLocaleDateString()}`;
-            localStorage.setItem(todayKey, JSON.stringify(attendanceData));
-
             const records = Object.entries(attendanceData).map(([studentId, status]) => ({ studentId, status }));
             console.log("Attendance saved:", { classId: selectedClassId, date: new Date().toISOString(), records });
 
@@ -189,13 +165,9 @@ export const TeacherAttendance: React.FC<TeacherAttendanceProps> = ({ classrooms
 
             setIsSaved(true);
             alert("Attendance Saved! It cannot be edited again for today.");
-        } catch (error) {
-            console.error('API save failed, using localStorage:', error);
-            // Fallback to localStorage only
-            const todayKey = `attendance_${selectedClassId}_${new Date().toLocaleDateString()}`;
-            localStorage.setItem(todayKey, JSON.stringify(attendanceData));
-            setIsSaved(true);
-            alert("Attendance saved locally. Will sync when online.");
+        } catch (error: any) {
+            console.error('API save failed:', error);
+            alert(`Failed to save attendance: ${error.message || 'Unknown error'}`);
         } finally {
             setIsSaving(false);
         }

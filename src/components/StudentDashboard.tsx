@@ -1,24 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Student, Classroom, Announcement, WeaknessRecord, SchoolProfile, Suggestion, ModuleHistoryItem } from '../types';
 import { NeonCard, NeonButton } from './UIComponents';
-import { AdaptiveLearning } from './Features/AdaptiveLearning';
-import { QuizMode } from './Features/QuizMode';
-import { Leaderboard } from './Features/Leaderboard';
-import { StoryMode } from './Features/StoryMode';
-import { StudentAssignments } from './Features/StudentAssignments';
-import { UserProfileModal } from './UserProfileModal';
-import { RemedialModal } from './Features/RemedialModal';
-import { GuideModal } from './Features/GuideModal';
-import { calculateLevel, getLevelProgress, getLevelTitle } from '../services/gamification';
 
-import { AttendanceView } from './Features/AttendanceView';
-import { MindMapGenerator } from './Features/MindMapGenerator';
-import { FlashcardGenerator } from './Features/FlashcardGenerator';
-import { EnglishLearningLab } from './Features/EnglishLearningLab';
-import { ModuleHistory } from './Features/ModuleHistory';
+// Lazy load feature components for performance
+const AdaptiveLearning = lazy(() => import('./Features/AdaptiveLearning').then(m => ({ default: m.AdaptiveLearning })));
+const QuizMode = lazy(() => import('./Features/QuizMode').then(m => ({ default: m.QuizMode })));
+const Leaderboard = lazy(() => import('./Features/Leaderboard').then(m => ({ default: m.Leaderboard })));
+const StoryMode = lazy(() => import('./Features/StoryMode').then(m => ({ default: m.StoryMode })));
+const StudentAssignments = lazy(() => import('./Features/StudentAssignments').then(m => ({ default: m.StudentAssignments })));
+const UserProfileModal = lazy(() => import('./UserProfileModal').then(m => ({ default: m.UserProfileModal })));
+const RemedialModal = lazy(() => import('./Features/RemedialModal').then(m => ({ default: m.RemedialModal })));
+const GuideModal = lazy(() => import('./Features/GuideModal').then(m => ({ default: m.GuideModal })));
+const AttendanceView = lazy(() => import('./Features/AttendanceView').then(m => ({ default: m.AttendanceView })));
+const MindMapGenerator = lazy(() => import('./Features/MindMapGenerator').then(m => ({ default: m.MindMapGenerator })));
+const FlashcardGenerator = lazy(() => import('./Features/FlashcardGenerator').then(m => ({ default: m.FlashcardGenerator })));
+const EnglishLearningLab = lazy(() => import('./Features/EnglishLearningLab').then(m => ({ default: m.EnglishLearningLab })));
+const ModuleHistory = lazy(() => import('./Features/ModuleHistory').then(m => ({ default: m.ModuleHistory })));
+const OpportunitiesView = lazy(() => import('./Features/OpportunitiesView').then(m => ({ default: m.OpportunitiesView })));
+const ModelSelector = lazy(() => import('./ModelSelector').then(m => ({ default: m.ModelSelector })));
+
+import { calculateLevel, getLevelProgress, getLevelTitle } from '../services/gamification';
 import { parseClassDetails } from '../utils/classParser'; // [NEW]
-import { OpportunitiesView } from './Features/OpportunitiesView';
-import { ModelSelector } from './ModelSelector';
+
+const TabFallback = () => (
+    <div className="min-h-[300px] flex flex-col items-center justify-center gap-4 animate-pulse">
+        <div className="w-12 h-12 border-4 border-neon-cyan border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-gray-400 font-medium tracking-wider">Syncing Data...</p>
+    </div>
+);
 import { BookOpen, Target, Trophy, ClipboardList, Sparkles, Feather, CheckCircle2, X, XCircle, AlertCircle, AlertTriangle, Clock, Star, TrendingUp, Calendar, Copy, School, Bell, Plus, Network, Zap, History, ChevronLeft, ChevronRight, LayoutDashboard, Globe, CircleHelp, Languages, ArrowRight, Trash2, FolderOpen, Brain } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -78,7 +87,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             }
         };
         fetchSuggestions();
-        fetchSuggestions();
     }, [student.id]);
 
     // [NEW] Module History Navigation
@@ -129,7 +137,34 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     // Filter students for rank:
     // If selectedClassId is set (and not 'ALL'), use it.
     // If 'ALL', use students who are in ANY of the availableClassIds.
-    const classStudents = (students || []).filter(s => {
+    // [NEW] On-demand student fetching for Scalability (10k user optimization)
+    const [classStudentsData, setClassStudentsData] = useState<Student[]>([]);
+    const [isFetchingStudents, setIsFetchingStudents] = useState(false);
+
+    useEffect(() => {
+        if (!selectedClassId || selectedClassId === 'ALL') {
+            setClassStudentsData([]);
+            return;
+        }
+
+        const fetchClassStudents = async () => {
+            setIsFetchingStudents(true);
+            try {
+                const data = await api.getStudents(selectedClassId);
+                setClassStudentsData(data);
+            } catch (e) {
+                console.error("Failed to fetch class students:", e);
+            } finally {
+                setIsFetchingStudents(false);
+            }
+        };
+        fetchClassStudents();
+    }, [selectedClassId]);
+
+    // Use fetched data if global 'students' prop is empty (common in optimized mode)
+    const activeStudentList = (students && students.length > 0) ? students : classStudentsData;
+
+    const classStudents = activeStudentList.filter(s => {
         if (!selectedClassId) return false;
         if (selectedClassId === 'ALL') {
             // Check if student 's' is in ANY of the current user's classes
@@ -811,31 +846,33 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                                         Powered by Gemini 2.5
                                                     </div>
                                                 </div>
-                                                <AdaptiveLearning
-                                                    key={learnRefreshKey}
-                                                    currentUser={student}
-                                                    onUpdateStudent={onUpdateStudent}
-                                                    initialPlan={activeTab === 'LEARN_AI' && loadedModule?.type === 'STUDY_PLAN' ? loadedModule.content : undefined}
-                                                    contextClass={selectedClassId !== 'ALL' && activeClassroom ? {
-                                                        id: activeClassroom.id,
-                                                        subject: activeClassroom.subject,
-                                                        name: activeClassroom.name,
-                                                        grade: student.grade
-                                                    } : undefined}
-                                                    onStartQuiz={(questions, topic) => {
-                                                        const quizModule: ModuleHistoryItem = {
-                                                            id: `gen-${Date.now()}`,
-                                                            type: 'QUIZ',
-                                                            topic: topic,
-                                                            createdAt: new Date().toISOString(),
-                                                            content: { questions, topic },
-                                                            studentId: student.id,
-                                                            classId: selectedClassId !== 'ALL' ? selectedClassId : undefined // [NEW] Attach classId
-                                                        };
-                                                        setLoadedModule(quizModule);
-                                                        setActiveAiTab('PRACTICE');
-                                                    }}
-                                                />
+                                                <Suspense fallback={<TabFallback />}>
+                                                    <AdaptiveLearning
+                                                        key={learnRefreshKey}
+                                                        currentUser={student}
+                                                        onUpdateStudent={onUpdateStudent}
+                                                        initialPlan={activeTab === 'LEARN_AI' && loadedModule?.type === 'STUDY_PLAN' ? loadedModule.content : undefined}
+                                                        contextClass={selectedClassId !== 'ALL' && activeClassroom ? {
+                                                            id: activeClassroom.id,
+                                                            subject: activeClassroom.subject,
+                                                            name: activeClassroom.name,
+                                                            grade: student.grade
+                                                        } : undefined}
+                                                        onStartQuiz={(questions, topic) => {
+                                                            const quizModule: ModuleHistoryItem = {
+                                                                id: `gen-${Date.now()}`,
+                                                                type: 'QUIZ',
+                                                                topic: topic,
+                                                                createdAt: new Date().toISOString(),
+                                                                content: { questions, topic },
+                                                                studentId: student.id,
+                                                                classId: selectedClassId !== 'ALL' ? selectedClassId : undefined // [NEW] Attach classId
+                                                            };
+                                                            setLoadedModule(quizModule);
+                                                            setActiveAiTab('PRACTICE');
+                                                        }}
+                                                    />
+                                                </Suspense>
                                             </>
                                         )}
                                     </div>
@@ -843,76 +880,98 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
                                 {activeAiTab === 'MINDMAP' && (
                                     <div className="space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-500 h-[600px]">
-                                        <MindMapGenerator
-                                            studentId={student.id}
-                                            contextClass={selectedClassId !== 'ALL' && activeClassroom ? {
-                                                id: activeClassroom.id,
-                                                subject: activeClassroom.subject,
-                                                grade: parseClassDetails(activeClassroom.name).grade
-                                            } : undefined}
-                                        />
+                                        <Suspense fallback={<TabFallback />}>
+                                            <MindMapGenerator
+                                                studentId={student.id}
+                                                contextClass={selectedClassId !== 'ALL' && activeClassroom ? {
+                                                    id: activeClassroom.id,
+                                                    subject: activeClassroom.subject,
+                                                    grade: parseClassDetails(activeClassroom.name).grade
+                                                } : undefined}
+                                            />
+                                        </Suspense>
                                     </div>
                                 )}
 
                                 {activeAiTab === 'STORY' && (
                                     <div className="space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
-                                        <div className="flex items-center justify-between">
-                                            <h2 className="text-2xl font-display font-bold text-white flex items-center gap-2">
-                                                <Feather className="w-6 h-6 text-neon-purple" />
-                                                Story Mode Learning
-                                            </h2>
-                                            <ModelSelector compact />
+                                        <div className="space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
+                                            <div className="flex items-center justify-between">
+                                                <h2 className="text-2xl font-display font-bold text-white flex items-center gap-2">
+                                                    <Feather className="w-6 h-6 text-neon-purple" />
+                                                    Story Mode Learning
+                                                </h2>
+                                                <Suspense fallback={null}>
+                                                    <ModelSelector compact />
+                                                </Suspense>
+                                            </div>
+                                            <Suspense fallback={<TabFallback />}>
+                                                <StoryMode
+                                                    studentId={student.id}
+                                                    initialStory={activeTab === 'LEARN_AI' && loadedModule?.type === 'STORY' ? loadedModule.content : undefined}
+                                                    contextClass={selectedClassId !== 'ALL' && activeClassroom ? {
+                                                        id: activeClassroom.id,
+                                                        subject: activeClassroom.subject,
+                                                        grade: parseClassDetails(activeClassroom.name).grade
+                                                    } : undefined}
+                                                />
+                                            </Suspense>
                                         </div>
-                                        <StoryMode
-                                            studentId={student.id}
-                                            initialStory={activeTab === 'LEARN_AI' && loadedModule?.type === 'STORY' ? loadedModule.content : undefined}
-                                            contextClass={selectedClassId !== 'ALL' && activeClassroom ? {
-                                                id: activeClassroom.id,
-                                                subject: activeClassroom.subject,
-                                                grade: parseClassDetails(activeClassroom.name).grade
-                                            } : undefined}
-                                        />
                                     </div>
                                 )}
 
                                 {activeAiTab === 'FLASHCARDS' && (
                                     <div className="space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
-                                        <FlashcardGenerator
-                                            studentId={student.id}
-                                            initialFlashcards={activeTab === 'LEARN_AI' && loadedModule?.type === 'FLASHCARDS' ? loadedModule.content : undefined}
-                                            contextClass={selectedClassId !== 'ALL' && activeClassroom ? {
-                                                id: activeClassroom.id,
-                                                subject: activeClassroom.subject,
-                                                grade: parseClassDetails(activeClassroom.name).grade
-                                            } : undefined}
-                                        />
+                                        <Suspense fallback={<TabFallback />}>
+                                            <FlashcardGenerator
+                                                studentId={student.id}
+                                                initialFlashcards={activeTab === 'LEARN_AI' && loadedModule?.type === 'FLASHCARDS' ? loadedModule.content : undefined}
+                                                contextClass={selectedClassId !== 'ALL' && activeClassroom ? {
+                                                    id: activeClassroom.id,
+                                                    subject: activeClassroom.subject,
+                                                    grade: parseClassDetails(activeClassroom.name).grade
+                                                } : undefined}
+                                            />
+                                        </Suspense>
                                     </div>
                                 )}
 
                                 {activeAiTab === 'ENGLISH' && (
                                     <div className="space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
-                                        <EnglishLearningLab currentUser={student} onUpdateStudent={onUpdateStudent} />
+                                        <Suspense fallback={<TabFallback />}>
+                                            <EnglishLearningLab currentUser={student} onUpdateStudent={onUpdateStudent} />
+                                        </Suspense>
                                     </div>
                                 )}
 
                                 {activeAiTab === 'PRACTICE' && (
-                                    <QuizMode
-                                        studentId={student.id}
-                                        initialQuiz={activeTab === 'LEARN_AI' && loadedModule?.type === 'QUIZ' ? loadedModule.content.questions : undefined}
-                                        initialTopic={activeTab === 'LEARN_AI' && loadedModule?.type === 'QUIZ' ? loadedModule.content.topic : undefined}
-                                        contextClass={selectedClassId !== 'ALL' && activeClassroom ? {
-                                            id: activeClassroom.id,
-                                            subject: activeClassroom.subject,
-                                            grade: parseClassDetails(activeClassroom.name).grade
-                                        } : undefined}
-                                        currentUser={student}
-                                        onUpdateStudent={onUpdateStudent}
-                                    />
+                                    <Suspense fallback={<TabFallback />}>
+                                        <QuizMode
+                                            studentId={student.id}
+                                            initialQuiz={activeTab === 'LEARN_AI' && loadedModule?.type === 'QUIZ' ? loadedModule.content.questions : undefined}
+                                            initialTopic={activeTab === 'LEARN_AI' && loadedModule?.type === 'QUIZ' ? loadedModule.content.topic : undefined}
+                                            contextClass={selectedClassId !== 'ALL' && activeClassroom ? {
+                                                id: activeClassroom.id,
+                                                subject: activeClassroom.subject,
+                                                grade: parseClassDetails(activeClassroom.name).grade
+                                            } : undefined}
+                                            currentUser={student}
+                                            onUpdateStudent={onUpdateStudent}
+                                        />
+                                    </Suspense>
                                 )}
                             </>
                         )}
-                        {activeTab === 'ASSIGNMENTS' && <StudentAssignments student={student} selectedClassId={selectedClassId} onUpdateStudent={onUpdateStudent} />}
-                        {activeTab === 'ATTENDANCE' && <AttendanceView student={student} classId={selectedClassId} />}
+                        {activeTab === 'ASSIGNMENTS' && (
+                            <Suspense fallback={<TabFallback />}>
+                                <StudentAssignments student={student} selectedClassId={selectedClassId} onUpdateStudent={onUpdateStudent} />
+                            </Suspense>
+                        )}
+                        {activeTab === 'ATTENDANCE' && (
+                            <Suspense fallback={<TabFallback />}>
+                                <AttendanceView student={student} classId={selectedClassId} />
+                            </Suspense>
+                        )}
 
                         {activeTab === 'ANNOUNCEMENTS' && (
                             <div className="space-y-6 animate-in fade-in">
@@ -1544,19 +1603,29 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                 })()}
                             </div>
                         )}
-                        {activeTab === 'LEADERBOARD' && <Leaderboard students={classStudents} />}
-                        {activeTab === 'OPPORTUNITIES' && <OpportunitiesView currentUser={student} />}
+                        {activeTab === 'LEADERBOARD' && (
+                            <Suspense fallback={<TabFallback />}>
+                                <Leaderboard students={classStudents} />
+                            </Suspense>
+                        )}
+                        {activeTab === 'OPPORTUNITIES' && (
+                            <Suspense fallback={<TabFallback />}>
+                                <OpportunitiesView currentUser={student} />
+                            </Suspense>
+                        )}
                     </div>
 
                     {showGuideModal && <GuideModal onClose={() => setShowGuideModal(false)} />}
 
                     {activeTab === 'HISTORY' && (
                         <div className="animate-in fade-in slide-in-from-bottom-4">
-                            <ModuleHistory
-                                studentId={student.id}
-                                onLoad={handleLoadModule}
-                                contextClass={selectedClassId !== 'ALL' && activeClassroom ? { id: activeClassroom.id, subject: activeClassroom.subject } : undefined}
-                            />
+                            <Suspense fallback={<TabFallback />}>
+                                <ModuleHistory
+                                    studentId={student.id}
+                                    onLoad={handleLoadModule}
+                                    contextClass={selectedClassId !== 'ALL' && activeClassroom ? { id: activeClassroom.id, subject: activeClassroom.subject } : undefined}
+                                />
+                            </Suspense>
                         </div>
                     )}
 

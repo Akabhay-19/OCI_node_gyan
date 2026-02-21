@@ -7,10 +7,17 @@ export const createAnnouncementRoutes = (supabase) => {
     // 1. Get Announcements
     router.get('/', async (req, res) => {
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('announcements')
                 .select('*')
-                .order('timestamp', { ascending: false }); // Ordered by timestamp for frontend
+                .order('timestamp', { ascending: false });
+
+            // Filter by schoolId for scalability and privacy
+            if (req.user.role !== 'DEVELOPER') {
+                query = query.eq('schoolId', req.user.schoolId);
+            }
+
+            const { data, error } = await query;
             if (error) throw error;
             res.json(data);
         } catch (err) {

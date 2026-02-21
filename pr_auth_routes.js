@@ -1,23 +1,13 @@
-import express from 'express';
+﻿import express from 'express';
 import bcrypt from 'bcryptjs';
 import { generateToken } from '../middleware/auth.js';
-import { loginRules, devLoginRules, forgotPasswordRules, resetPasswordRules, googleLoginRules, validate } from '../middleware/validators.js';
+import { loginRules, devLoginRules, forgotPasswordRules, resetPasswordRules, validate } from '../middleware/validators.js';
 import { handleGoogleAuth } from '../services/google-auth.service.js';
-import rateLimit from 'express-rate-limit';
 
 // Factory function to create auth routes with dependencies
 export const createAuthRoutes = (supabase, emailService) => {
     const router = express.Router();
     const { sendEmailOTP, verifyEmailOTP, sendPasswordResetEmail } = emailService;
-
-    // Rate limiter for Google login: 10 requests per minute per IP
-    const googleLoginLimiter = rateLimit({
-        windowMs: 1 * 60 * 1000, // 1 minute
-        max: 10,
-        message: { error: 'Too many login attempts, please try again after a minute' },
-        standardHeaders: true,
-        legacyHeaders: false,
-    });
 
     // Developer Console Login
     router.post('/dev-login', devLoginRules, validate, async (req, res) => {
@@ -108,26 +98,19 @@ export const createAuthRoutes = (supabase, emailService) => {
                 schoolId: user.schoolId || user.id // For admin schoolId is user.id
             });
 
-            // Destructure safe fields for response
-            const { id, name, google_id, auth_provider } = user;
-            const userEmail = user.email || user.adminEmail || user.username;
-            const userSchoolId = role === 'ADMIN' ? user.id : user.schoolId;
-
-            const safeUser = {
-                id,
-                name,
-                email: userEmail,
-                role,
-                schoolId: userSchoolId,
-                auth_provider,
-                google_id,
-                token
-            };
-
             if (role === 'STUDENT' && asParent) {
-                res.json({ ...safeUser, loginAsParent: true });
+                res.json({ ...user, token, loginAsParent: true });
+            } else if (role === 'ADMIN') {
+                res.json({
+                    id: user.id,
+                    name: user.name,
+                    email: user.adminEmail,
+                    role: 'ADMIN',
+                    schoolId: user.id,
+                    token
+                });
             } else {
-                res.json(safeUser);
+                res.json({ ...user, token });
             }
 
         } catch (err) {
@@ -178,8 +161,12 @@ export const createAuthRoutes = (supabase, emailService) => {
     });
 
     // Google OAuth Login/Signup
-    router.post('/google-login', googleLoginLimiter, googleLoginRules, validate, async (req, res) => {
+    router.post('/google-login', async (req, res) => {
         const { idToken, role } = req.body;
+
+        if (!idToken || !role) {
+            return res.status(400).json({ error: 'idToken and role are required' });
+        }
 
         try {
             // Handle Google auth (create/link user)
@@ -190,7 +177,7 @@ export const createAuthRoutes = (supabase, emailService) => {
             }
 
             const user = authResult.user;
-
+            
             // Generate JWT token for the app
             const token = generateToken({
                 id: user.id,
@@ -201,24 +188,32 @@ export const createAuthRoutes = (supabase, emailService) => {
             });
 
             // Return user data + JWT
-            // Destructure safe fields explicitly
-            const { id, name, google_id, auth_provider } = user;
-            const userEmail = user.email || user.adminEmail || user.username;
-            const userSchoolId = role === 'ADMIN' ? user.id : user.schoolId;
-
-            // Return only safe fields + JWT + auth metadata
-            res.json({
-                id,
-                name,
-                email: userEmail,
-                google_id,
-                schoolId: userSchoolId,
-                auth_provider,
-                role,
-                token,
-                isNewUser: authResult.isNewUser,
-                accountLinked: authResult.accountLinked || false
-            });
+            if (role === 'ADMIN') {
+                res.json({
+                    id: user.id,
+                    name: user.name,
+                    email: user.adminEmail,
+                    role: 'ADMIN',
+                    schoolId: user.id,
+                    token,
+                    isNewUser: authResult.isNewUser,
+                    accountLinked: authResult.accountLinked || false
+                });
+            } else if (role === 'STUDENT') {
+                res.json({
+                    ...user,
+                    token,
+                    isNewUser: authResult.isNewUser,
+                    accountLinked: authResult.accountLinked || false
+                });
+            } else {
+                res.json({
+                    ...user,
+                    token,
+                    isNewUser: authResult.isNewUser,
+                    accountLinked: authResult.accountLinked || false
+                });
+            }
         } catch (err) {
             console.error('[Google Login Route] Error:', err);
             res.status(500).json({ error: err.message || 'Google authentication failed' });

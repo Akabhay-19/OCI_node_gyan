@@ -23,106 +23,72 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ student, classId
             const targetClassId = (classId && classId !== 'ALL') ? classId : student.classId;
 
             try {
-                // Try database first
+                // Fetch from database
                 const result = await api.getStudentAttendance(student.id, targetClassId, 365);
 
-                if (result.records && result.records.length > 0) {
-                    // Transform database records to view format
-                    const data = result.records.map((record: any) => ({
-                        date: new Date(record.date),
-                        status: record.status,
-                        value: record.status === 'PRESENT' ? 1 : 0,
-                        time: record.checkInTime || '-'
-                    }));
-                    setAttendanceData(data);
+                const data = (result.records || []).map((record: any) => ({
+                    date: new Date(record.date),
+                    status: record.status,
+                    value: record.status === 'PRESENT' ? 1 : 0,
+                    time: record.checkInTime || record.time || '-'
+                }));
+
+                // Add missing dates (weekends vs not recorded) for visual consistency
+                const visualData = fillMissingDates(data, student.createdAt);
+
+                setAttendanceData(visualData);
+                if (result.stats) {
                     setStats({
                         present: result.stats.present,
                         absent: result.stats.absent,
                         percentage: result.stats.percentage
                     });
-                } else {
-                    // Fallback to localStorage calculation
-                    loadFromLocalStorage(targetClassId);
                 }
             } catch (error) {
                 console.error('Error fetching attendance from API:', error);
-                loadFromLocalStorage(targetClassId);
+                setAttendanceData([]);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        const loadFromLocalStorage = (targetClassId?: string) => {
-            const data = [];
+        const fillMissingDates = (data: any[], createdAt?: string | number | Date) => {
+            const resultData = [];
             const today = new Date();
-            const joiningDate = student.createdAt ? new Date(student.createdAt) : (() => {
+            const joiningDate = createdAt ? new Date(createdAt) : (() => {
                 const d = new Date();
-                d.setDate(d.getDate() - 30);
+                d.setDate(d.getDate() - 90); // Default to last 90 days if no creation date
                 return d;
             })();
 
-            const daysSinceJoining = Math.ceil((today.getTime() - joiningDate.getTime()) / (1000 * 60 * 60 * 24));
-            const days = Math.min(daysSinceJoining, 365);
+            // Normalize dates to start of day for comparison
+            const dateMap = new Map();
+            data.forEach(item => {
+                const dayStr = item.date.toISOString().split('T')[0];
+                dateMap.set(dayStr, item);
+            });
 
-            let presentCount = 0;
-            let absentCount = 0;
+            const dayCount = Math.ceil((today.getTime() - joiningDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            const limit = Math.min(dayCount, 365);
 
-            for (let i = 0; i < days; i++) {
+            for (let i = 0; i < limit; i++) {
                 const date = new Date(joiningDate);
                 date.setDate(joiningDate.getDate() + i);
                 if (date > today) break;
 
-                const dateStr = date.toLocaleDateString();
-                const storageKey = targetClassId ? `attendance_${targetClassId}_${dateStr}` : '';
-                const storedDailyData = storageKey ? localStorage.getItem(storageKey) : null;
-
-                let status: 'PRESENT' | 'ABSENT' | 'NOT_RECORDED' | null = null;
-                let time = '-';
-
-                if (storedDailyData) {
-                    try {
-                        const parsed = JSON.parse(storedDailyData);
-                        if (parsed[student.id]) {
-                            status = parsed[student.id];
-                            if (status === 'PRESENT') {
-                                presentCount++;
-                                const hour = 8 + Math.floor(Math.random() * 2);
-                                const minute = Math.floor(Math.random() * 60);
-                                time = `${hour}:${minute.toString().padStart(2, '0')} AM`;
-                            } else if (status === 'ABSENT') {
-                                absentCount++;
-                            }
-                        }
-                    } catch (e) {
-                        console.error("Error parsing attendance data", e);
-                    }
-                }
-
+                const dayStr = date.toISOString().split('T')[0];
                 const dayOfWeek = date.getDay();
                 const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-                if (isWeekend) {
-                    status = null;
-                    time = '-';
-                } else if (!status) {
-                    status = 'NOT_RECORDED';
+                if (dateMap.has(dayStr)) {
+                    resultData.push(dateMap.get(dayStr));
+                } else if (isWeekend) {
+                    resultData.push({ date, status: null, value: 0, time: '-' });
+                } else {
+                    resultData.push({ date, status: 'NOT_RECORDED', value: 0, time: '-' });
                 }
-
-                data.push({
-                    date: date,
-                    status: status,
-                    value: status === 'PRESENT' ? 1 : 0,
-                    time: time
-                });
             }
-
-            setAttendanceData(data);
-            const total = presentCount + absentCount;
-            setStats({
-                present: presentCount,
-                absent: absentCount,
-                percentage: total > 0 ? Math.round((presentCount / total) * 100) : student.attendance
-            });
+            return resultData;
         };
 
         fetchAttendance();
