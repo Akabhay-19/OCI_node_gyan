@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { NeonCard, NeonButton } from '../UIComponents';
+import { API_URL } from '../../services/api';
 import { Key, Code, Terminal, Copy, Check, Lock, Globe, Server, Database, Users } from 'lucide-react';
 
 interface DeveloperAPIProps {
@@ -16,9 +17,6 @@ export const DeveloperAPI: React.FC<DeveloperAPIProps> = ({ currentSchoolId }) =
     const generateKey = async () => {
         setLoading(true);
         try {
-            // Dynamic API URL resolution
-            const API_URL = (import.meta as any).env.VITE_API_URL ||
-                ((import.meta as any).env.PROD ? '/api' : 'http://localhost:5000/api');
 
             const res = await fetch(`${API_URL}/keys/generate`, {
                 method: 'POST',

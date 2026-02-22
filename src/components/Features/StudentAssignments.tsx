@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { NeonCard, NeonButton } from '../UIComponents';
 import { Assignment, Student, QuizQuestion } from '../../types';
 import { BookOpen, Clock, CheckCircle2, XCircle, ArrowRight, Download, PenTool, Image, Upload, Archive, LayoutList, History, FileText, Flag, AlertTriangle } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, API_URL } from '../../services/api';
 import { XP_REWARDS, calculateLevel } from '../../services/gamification';
 
 interface StudentAssignmentsProps {
@@ -152,15 +152,15 @@ export const StudentAssignments: React.FC<StudentAssignmentsProps> = ({ student,
                 const finalUserAnswers = activeQuiz.map((_, idx) => userSelections[idx] !== undefined ? userSelections[idx] : -1);
 
                 // Fire and forget gap analysis (don't block main submission)
-                api.submitQuizResult(
-                    student.id,
-                    activeAssignment.title,
-                    finalUserAnswers,
-                    activeQuiz,
-                    selectedClassId !== 'ALL' ? selectedClassId : undefined,
-                    'ASSIGNMENT', // Source is ASSIGNMENT
-                    undefined // Subject inferred
-                ).then(res => {
+                api.submitQuizResult({
+                    studentId: student.id,
+                    topic: activeAssignment.title,
+                    userAnswers: finalUserAnswers,
+                    questions: activeQuiz,
+                    classId: selectedClassId !== 'ALL' ? selectedClassId : undefined,
+                    source: 'ASSIGNMENT',
+                    subject: undefined
+                }).then(res => {
                     console.log("[ASSIGNMENT] Gap Analysis Complete:", res);
                     if (res.newGaps && res.newGaps.length > 0 && onUpdateStudent) {
                         // Optimistically update student with new gaps
@@ -174,7 +174,6 @@ export const StudentAssignments: React.FC<StudentAssignmentsProps> = ({ student,
             }
 
             // 2. Main Assignment Submission
-            const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
             await fetch(`${API_URL}/assignments/submit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -270,7 +269,6 @@ export const StudentAssignments: React.FC<StudentAssignmentsProps> = ({ student,
             }
 
             try {
-                const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
 
                 // If specific class selected
                 if (selectedClassId && selectedClassId !== 'ALL') {
@@ -307,7 +305,6 @@ export const StudentAssignments: React.FC<StudentAssignmentsProps> = ({ student,
     useEffect(() => {
         const fetchSubmissions = async () => {
             try {
-                const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
                 const res = await fetch(`${API_URL}/students/${student.id}/history`);
                 if (res.ok) {
                     const data = await res.json();

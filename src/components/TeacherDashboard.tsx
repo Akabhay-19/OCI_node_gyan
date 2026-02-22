@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
-import { api } from '../services/api';
+import { api, API_URL } from '../services/api';
 import { NeonCard, NeonButton, Input } from './UIComponents';
 import { Student, Assignment, Classroom, Announcement, SchoolProfile, AssignmentType, AiAssignmentResponse, Teacher, UserRole } from '../types';
 
@@ -533,7 +533,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
         setShowGapAnalysis(false);
         const fetchHistory = async () => {
             try {
-                const res = await api.authFetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api')}/students/${selectedStudentId}/history`);
+                const res = await api.authFetch(`${API_URL}/students/${selectedStudentId}/history`);
                 if (res.ok) {
                     const data = await res.json();
                     setStudentHistory(data);
@@ -645,7 +645,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
         };
 
         try {
-            const res = await api.authFetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api')}/assignments`, {
+            const res = await api.authFetch(`${API_URL}/assignments`, {
                 method: 'POST',
                 body: JSON.stringify(newAssignment)
             });
@@ -687,7 +687,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
         };
 
         try {
-            const res = await api.authFetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api')}/assignments`, {
+            const res = await api.authFetch(`${API_URL}/assignments`, {
                 method: 'POST',
                 body: JSON.stringify(newAssignment)
             });
@@ -712,7 +712,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
         const fetchAssignments = async () => {
             if (!currentUser?.id) return;
             try {
-                const res = await api.authFetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api')}/teachers/${currentUser.id}/assignments`);
+                const res = await api.authFetch(`${API_URL}/teachers/${currentUser.id}/assignments`);
                 if (res.ok) {
                     const data = await res.json();
                     setCreatedAssignments(data);

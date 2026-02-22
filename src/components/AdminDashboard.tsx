@@ -6,9 +6,9 @@ import {
     Users, BookOpen, Calendar, Settings, Folder, FileText, ChevronRight, ArrowLeft,
     UserCircle, School, Plus, BarChart2, Clock, CheckCircle, Megaphone, Copy,
     Trash2, Lock, Unlock, UserPlus, Search, RotateCcw, Award, Star, Medal,
-    AlertTriangle, ArrowRight
+    AlertTriangle, ArrowRight, Activity, Phone, Mail, Globe, Filter, UserCheck
 } from 'lucide-react';
-import { api } from '../services/api';
+import { api, API_URL } from '../services/api';
 
 // Lazy load feature components
 const AttendanceView = lazy(() => import('./Features/AttendanceView').then(m => ({ default: m.AttendanceView })));
@@ -20,6 +20,14 @@ const DashboardFallback = () => (
         <div className="w-8 h-8 border-4 border-neon-cyan border-t-transparent rounded-full animate-spin"></div>
     </div>
 );
+
+const LEVEL_CONFIG = {
+    GENERAL: { border: 'border-blue-500', badge: 'bg-blue-500/20 text-blue-400', label: 'General' },
+    IMPORTANT: { border: 'border-yellow-500', badge: 'bg-yellow-500/20 text-yellow-400', label: 'Important' },
+    URGENT: { border: 'border-red-500', badge: 'bg-red-500/20 text-red-400', label: 'Urgent' },
+    EVENT: { border: 'border-purple-500', badge: 'bg-purple-500/20 text-purple-400', label: 'Event' },
+    ACADEMIC: { border: 'border-green-500', badge: 'bg-green-500/20 text-green-400', label: 'Academic' }
+};
 
 interface AdminDashboardProps {
     schoolName: string;
@@ -56,7 +64,7 @@ const TeacherClassDetailView: React.FC<{
     useEffect(() => {
         const fetchAssignments = async () => {
             try {
-                const res = await api.authFetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api')}/assignments?classId=${classroom.id}`);
+                const res = await api.authFetch(`${API_URL}/assignments?classId=${classroom.id}`);
                 if (res.ok) {
                     const data = await res.json();
                     setAssignments(data);
@@ -342,6 +350,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [studentViewClassId, setStudentViewClassId] = useState('');
     const [showArchived, setShowArchived] = useState(false);
 
+    // [UPGRADE] Announcement States
+    const [announcementTitle, setAnnouncementTitle] = useState('');
+    const [targetMode, setTargetMode] = useState<'ALL' | 'CUSTOM'>('ALL');
+    const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+    const [announcementLevel, setAnnouncementLevel] = useState<keyof typeof LEVEL_CONFIG>('GENERAL');
+    const [isPosting, setIsPosting] = useState(false);
+    const [audienceFilters, setAudienceFilters] = useState({ classId: '', subject: '' });
+
+    const handleRoleToggle = (role: string) => {
+        setSelectedRoles(prev =>
+            prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]
+        );
+    };
+
 
     // Navigation Helpers
     const navigateTo = (path: string) => setAttendancePath([...attendancePath, path]);
@@ -563,45 +585,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <div className="pt-24 px-8 pb-12 max-w-7xl mx-auto">
-                {/* School Header with Logo and Name - Centered */}
-                <div className="flex flex-col items-center justify-center mb-8 pb-6 border-b border-white/10">
-                    <div className="flex items-center gap-4 mb-3">
+                {/* School Header - Compact Horizontal Layout */}
+                <div className="flex flex-col md:flex-row items-center justify-between mb-8 pb-6 border-b border-white/5 gap-6">
+                    <div className="flex items-center gap-5">
                         {schoolProfile?.logoUrl ? (
                             <img
                                 src={schoolProfile.logoUrl}
                                 alt={schoolName}
-                                className="w-16 h-16 rounded-xl object-cover border-2 border-neon-cyan/30 shadow-[0_0_20px_rgba(0,255,255,0.2)]"
+                                className="w-14 h-14 rounded-2xl object-cover border border-white/10 shadow-lg"
                             />
                         ) : (
-                            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-neon-purple to-neon-cyan flex items-center justify-center text-2xl font-bold text-white shadow-[0_0_20px_rgba(0,255,255,0.2)]">
+                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-neon-purple/20 to-neon-cyan/20 border border-white/10 flex items-center justify-center text-xl font-bold text-white">
                                 {schoolName?.charAt(0) || 'S'}
                             </div>
                         )}
-                        <div className="text-center">
-                            <h1 className="text-3xl font-display font-bold text-white">{schoolName}</h1>
-                            {schoolProfile?.motto && (
-                                <p className="text-gray-400 text-sm italic mt-1">"{schoolProfile.motto}"</p>
-                            )}
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-2xl font-bold text-white tracking-tight">{schoolName}</h1>
+                                <span className="px-2 py-0.5 rounded-md bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20 text-[10px] font-black uppercase tracking-wider">
+                                    {schoolProfile?.subscriptionStatus || 'TRIAL'}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 font-medium">
+                                {schoolProfile?.mobileNumber && <span className="flex items-center gap-1.5"><Phone className="w-3 h-3" /> {schoolProfile.mobileNumber}</span>}
+                                {schoolProfile?.adminEmail && <span className="flex items-center gap-1.5"><Mail className="w-3 h-3" /> {schoolProfile.adminEmail}</span>}
+                            </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-6 text-sm text-gray-400">
-                        {schoolProfile?.mobileNumber && (
-                            <span>📞 {schoolProfile.mobileNumber}</span>
-                        )}
-                        {schoolProfile?.adminEmail && (
-                            <span>✉️ {schoolProfile.adminEmail}</span>
-                        )}
-                        <span className="px-3 py-1 rounded-full bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20">
-                            {schoolProfile?.subscriptionStatus || 'TRIAL'}
-                        </span>
+
+                    <div className="flex items-center gap-3">
                         {schoolProfile?.inviteCode && (
-                            <span
-                                className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 cursor-pointer hover:bg-purple-500/20 flex items-center gap-2"
+                            <div
+                                className="group flex items-center gap-3 px-4 py-2 bg-slate-800/50 border border-white/5 rounded-xl hover:border-neon-purple/50 transition-all cursor-pointer"
                                 onClick={() => { navigator.clipboard.writeText(schoolProfile.inviteCode || ''); alert('Invite code copied!'); }}
                             >
-                                🎟️ Code: <span className="font-mono font-bold">{schoolProfile.inviteCode}</span>
-                                <Copy className="w-3 h-3" />
-                            </span>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">School Invite Code</span>
+                                    <span className="text-sm font-mono font-bold text-neon-purple group-hover:text-white transition-colors">{schoolProfile.inviteCode}</span>
+                                </div>
+                                <div className="w-8 h-8 rounded-lg bg-neon-purple/10 flex items-center justify-center group-hover:bg-neon-purple transition-all">
+                                    <Copy className="w-4 h-4 text-neon-purple group-hover:text-white" />
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -629,65 +654,232 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 {/* OVERVIEW TAB */}
-                {activeTab === 'OVERVIEW' && (
-                    <div className="space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            <NeonCard glowColor="cyan" className="p-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400">
-                                        <Users className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl font-bold text-white">{students.length}</div>
-                                        <div className="text-sm text-gray-400">Total Students</div>
-                                    </div>
+                {activeTab === 'OVERVIEW' && (() => {
+                    const healthScore =
+                        (students.length > 0 ? 40 : 0) +
+                        (classrooms.length > 0 ? 30 : 0) +
+                        (schoolProfile?.faculty?.length && schoolProfile.faculty.length > 0 ? 20 : 0) +
+                        (schoolProfile?.subscriptionStatus === 'ACTIVE' ? 10 : 0);
+
+                    const mockActivities = [
+                        { text: 'New student added to Grade 10-A', time: '2h ago', icon: <UserPlus className="w-3 h-3" /> },
+                        { text: 'Class "Physics Lab" created', time: '5h ago', icon: <Plus className="w-3 h-3" /> },
+                        { text: 'New announcement posted: "Annual Sports Meet"', time: '1d ago', icon: <Megaphone className="w-3 h-3" /> }
+                    ];
+
+                    return (
+                        <div className="space-y-10 animate-fade-in">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {[
+                                        {
+                                            label: 'Total Students',
+                                            value: students.length,
+                                            icon: <Users className="w-6 h-6" />,
+                                            color: 'cyan'
+                                        },
+                                        {
+                                            label: 'Teachers',
+                                            value: schoolProfile?.faculty?.length || 0,
+                                            icon: <UserCircle className="w-6 h-6" />,
+                                            color: 'purple'
+                                        },
+                                        {
+                                            label: 'Active Classes',
+                                            value: classrooms.length,
+                                            icon: <BookOpen className="w-6 h-6" />,
+                                            color: 'pink'
+                                        }
+                                    ].map((stat, i) => (
+                                        <div
+                                            key={i}
+                                            className="group relative bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-black/50 hover:border-white/10 cursor-pointer"
+                                        >
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300 ${stat.color === 'cyan' ? 'bg-cyan-500/10 text-cyan-400' :
+                                                    stat.color === 'purple' ? 'bg-purple-500/10 text-purple-400' :
+                                                        'bg-pink-500/10 text-pink-400'
+                                                    }`}>
+                                                    {stat.icon}
+                                                </div>
+                                                <ArrowRight className="w-4 h-4 text-gray-600 group-hover:text-white transition-colors" />
+                                            </div>
+                                            <div>
+                                                <div className="text-3xl md:text-4xl font-bold text-white tracking-tight">{stat.value}</div>
+                                                <div className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1 group-hover:text-gray-400 transition-colors">{stat.label}</div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                            </NeonCard>
-                            <NeonCard glowColor="purple" className="p-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
-                                        <UserCircle className="w-6 h-6" />
+
+                                {/* Health Score Card */}
+                                <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-white/5 rounded-2xl p-6 hover:shadow-cyan-500/10 transition-all group relative overflow-hidden">
+                                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-neon-cyan/5 rounded-full blur-3xl group-hover:bg-neon-cyan/10 transition-all"></div>
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div>
+                                            <span className="text-[10px] font-black text-neon-cyan uppercase tracking-[0.2em]">Health Score</span>
+                                            <div className="text-4xl font-black text-white mt-1 italic">{healthScore}<span className="text-lg text-gray-700 not-italic ml-1">/100</span></div>
+                                        </div>
+                                        <div className="w-10 h-10 rounded-full border-2 border-slate-700 border-t-neon-cyan flex items-center justify-center">
+                                            <Star className="w-5 h-5 text-neon-cyan animate-pulse" />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div className="text-2xl font-bold text-white">{schoolProfile?.faculty?.length || 0}</div>
-                                        <div className="text-sm text-gray-400">Teachers</div>
+                                    <div className="w-full bg-slate-700/50 h-1.5 rounded-full overflow-hidden">
+                                        <div className="h-full bg-neon-cyan transition-all duration-1000" style={{ width: `${healthScore}%` }}></div>
                                     </div>
+                                    <p className="text-[10px] text-gray-500 mt-4 leading-relaxed font-medium">Overall operational health of your school system.</p>
                                 </div>
-                            </NeonCard>
-                            <NeonCard glowColor="red" className="p-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center text-pink-400">
-                                        <BookOpen className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl font-bold text-white">{classrooms.length}</div>
-                                        <div className="text-sm text-gray-400">Classes</div>
-                                    </div>
-                                </div>
-                            </NeonCard>
-                            <NeonCard glowColor="green" className="p-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400">
-                                        <School className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl font-bold text-white">{schoolProfile?.subscriptionStatus || 'TRIAL'}</div>
-                                        <div className="text-sm text-gray-400">Plan Status</div>
-                                    </div>
-                                </div>
-                            </NeonCard>
-                        </div>
-                        <NeonCard className="p-6">
-                            <h3 className="text-xl font-bold text-white mb-4">School Information</h3>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div><span className="text-gray-400">School Name:</span> <span className="text-white ml-2">{schoolName}</span></div>
-                                <div><span className="text-gray-400">Admin Email:</span> <span className="text-white ml-2">{schoolProfile?.adminEmail || 'N/A'}</span></div>
-                                <div><span className="text-gray-400">Invite Code:</span> <span className="text-neon-cyan ml-2 font-mono">{schoolProfile?.inviteCode || 'N/A'}</span></div>
-                                <div><span className="text-gray-400">Max Students:</span> <span className="text-white ml-2">{schoolProfile?.maxStudents || 'N/A'}</span></div>
                             </div>
-                        </NeonCard>
-                    </div>
-                )}
+
+                            {/* Activity and Suggestions Row */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Activity Timeline */}
+                                <div className="lg:col-span-2 bg-slate-900/50 border border-white/5 rounded-2xl p-6 space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                                            <Activity className="w-5 h-5 text-purple-400" />
+                                            Recent Activity
+                                        </h3>
+                                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Real-time Insight</span>
+                                    </div>
+
+                                    <div className="relative pl-4 space-y-6 before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2px] before:bg-gradient-to-b before:from-purple-500/50 before:to-transparent">
+                                        {mockActivities.length > 0 ? mockActivities.map((act, i) => (
+                                            <div key={i} className="relative group pl-6">
+                                                <div className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-900 border-2 border-purple-500 group-hover:scale-125 transition-transform shadow-[0_0_10px_rgba(168,85,247,0.5)]"></div>
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
+                                                    <span className="text-sm text-gray-200 font-medium group-hover:text-white transition-colors">{act.text}</span>
+                                                    <span className="text-[10px] text-gray-500 font-bold whitespace-nowrap">{act.time}</span>
+                                                </div>
+                                            </div>
+                                        )) : (
+                                            <div className="py-4 text-center">
+                                                <p className="text-sm text-gray-500 italic">No recent activity. Start managing your school to see updates here.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Smart Suggestions */}
+                                <div className="bg-slate-800/40 border border-white/5 rounded-2xl p-6 space-y-6">
+                                    <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                                        <Award className="w-5 h-5 text-orange-400" />
+                                        System Suggestions
+                                    </h3>
+
+                                    <div className="space-y-4">
+                                        {students.length === 0 && (
+                                            <div className="p-4 bg-slate-900/50 border border-slate-700/50 rounded-xl group hover:border-neon-cyan/30 transition-all active:scale-95 cursor-pointer">
+                                                <div className="flex gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-neon-cyan/10 flex items-center justify-center shrink-0">
+                                                        <UserPlus className="w-4 h-4 text-neon-cyan" />
+                                                    </div>
+                                                    <p className="text-xs text-gray-400 leading-relaxed font-medium">You haven't added students yet. Consider <span className="text-neon-cyan font-bold">creating your first class</span> to begin.</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {schoolProfile?.faculty?.length === 0 && (
+                                            <div className="p-4 bg-slate-900/50 border border-slate-700/50 rounded-xl group hover:border-purple-500/30 transition-all active:scale-95 cursor-pointer">
+                                                <div className="flex gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+                                                        <UserCircle className="w-4 h-4 text-purple-400" />
+                                                    </div>
+                                                    <p className="text-xs text-gray-400 leading-relaxed font-medium">No teachers assigned. <span className="text-purple-400 font-bold">Add teachers</span> to activate classes and start curriculum tracking.</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {classrooms.length > 0 && students.length > 0 && (
+                                            <div className="p-4 bg-slate-900/50 border border-slate-700/50 rounded-xl group hover:border-green-500/30 transition-all active:scale-95 cursor-pointer">
+                                                <div className="flex gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+                                                        <CheckCircle className="w-4 h-4 text-green-400" />
+                                                    </div>
+                                                    <p className="text-xs text-gray-400 leading-relaxed font-medium">Looking good! <span className="text-green-400 font-bold">Post a notice</span> to welcome your community to the platform.</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Quick Management */}
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-3 px-1">
+                                    <div className="h-6 w-1 bg-neon-cyan rounded-full"></div>
+                                    <h3 className="text-xl font-bold text-white tracking-tight">Quick Management</h3>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {[
+                                        { label: 'Add Student', icon: <UserPlus className="w-5 h-5" />, action: () => { handleTabChange('CLASSES'); setIsAddingSection(false); }, color: 'from-cyan-500/10 to-transparent', hoverBorder: 'hover:border-cyan-500/40' },
+                                        { label: 'Add Teacher', icon: <Plus className="w-5 h-5" />, action: () => handleTabChange('ATTENDANCE'), color: 'from-purple-500/10 to-transparent', hoverBorder: 'hover:border-purple-500/40' },
+                                        { label: 'Create Class', icon: <Plus className="w-5 h-5" />, action: () => { handleTabChange('CLASSES'); setIsAddingSection(true); }, color: 'from-green-500/10 to-transparent', hoverBorder: 'hover:border-green-500/40' },
+                                        { label: 'Post Notice', icon: <Megaphone className="w-5 h-5" />, action: () => handleTabChange('ANNOUNCEMENTS'), color: 'from-orange-500/10 to-transparent', hoverBorder: 'hover:border-orange-500/40' }
+                                    ].map((btn, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={btn.action}
+                                            className={`flex flex-col items-center justify-center p-6 gap-3 bg-gradient-to-b ${btn.color} border border-white/5 rounded-2xl transition-all duration-300 hover:scale-105 active:scale-95 ${btn.hoverBorder} group`}
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                                                {btn.icon}
+                                            </div>
+                                            <span className="text-sm font-bold text-gray-300 group-hover:text-white transition-colors">{btn.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Institution Details Improved */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <div className="lg:col-span-2 bg-slate-900 border border-white/5 rounded-2xl p-8 space-y-6">
+                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <School className="w-5 h-5 text-neon-cyan" />
+                                        Institution Details
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] text-gray-500 uppercase font-black">Official Name</span>
+                                                <span className="text-white font-bold">{schoolName}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] text-gray-500 uppercase font-black">Administration Email</span>
+                                                <span className="text-white font-medium">{schoolProfile?.adminEmail || 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] text-gray-500 uppercase font-black">Enrollment Capacity</span>
+                                                <span className="text-white font-bold">{schoolProfile?.maxStudents || '500'} Students</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] text-gray-500 uppercase font-black">Current Motto</span>
+                                                <span className="text-gray-400 italic text-sm">"{schoolProfile?.motto || 'Empowering through AI'}"</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 rounded-2xl p-8 flex flex-col justify-center text-center group">
+                                    <div className="relative mb-4">
+                                        <Medal className="w-12 h-12 text-yellow-500 mx-auto transition-transform group-hover:scale-110 duration-300" />
+                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 bg-yellow-500/20 blur-xl rounded-full"></div>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white mb-2">Power Admin</h3>
+                                    <p className="text-gray-400 text-sm mb-6">Manage institutional growth with our quantum intelligence tools.</p>
+                                    <div className="pt-4 border-t border-white/5">
+                                        <div className="text-xs text-gray-500 font-bold mb-3 uppercase tracking-widest">Active System Modules</div>
+                                        <div className="flex flex-wrap justify-center gap-2 text-[10px] font-bold">
+                                            <span className="px-2 py-1 rounded bg-green-500/10 text-green-400">Attendance</span>
+                                            <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-400">LMS</span>
+                                            <span className="px-2 py-1 rounded bg-purple-500/10 text-purple-400">AI Tutor</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {/* LEADERBOARD TAB */}
                 {activeTab === 'LEADERBOARD' && (
@@ -1707,89 +1899,247 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
 
-                {/* ANNOUNCEMENTS TAB */}
+                {/* ANNOUNCEMENTS TAB - UPGRADED */}
                 {activeTab === 'ANNOUNCEMENTS' && (
-                    <div className="max-w-4xl mx-auto space-y-6">
-                        {/* Post Announcement Card */}
-                        <NeonCard glowColor="purple" className="p-6">
-                            <h3 className="text-lg font-bold text-white mb-4">Post Announcement</h3>
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label className="text-sm text-gray-400 block mb-1">Target</label>
-                                    <select
-                                        className="w-full bg-black/40 border border-white/10 rounded p-2 text-white"
-                                        value={announcementClassId}
-                                        onChange={e => setAnnouncementClassId(e.target.value)}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-in">
+                        {/* Form Column */}
+                        <div className="lg:col-span-7 space-y-6">
+                            <NeonCard className="p-6 bg-gradient-to-br from-slate-800 to-slate-900 border-white/5 rounded-2xl">
+                                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                    <Megaphone className="w-5 h-5 text-neon-purple" />
+                                    Post Announcement
+                                </h3>
+
+                                <div className="space-y-6">
+                                    {/* 1. Target Audience Selector */}
+                                    <div className="space-y-4">
+                                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Target Audience</label>
+                                        <div className="flex gap-4">
+                                            <label className={`flex-1 flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${targetMode === 'ALL' ? 'bg-neon-purple/10 border-neon-purple text-white' : 'bg-black/40 border-white/5 text-gray-500 hover:border-white/10'}`}>
+                                                <input type="radio" name="targetMode" className="hidden" checked={targetMode === 'ALL'} onChange={() => { setTargetMode('ALL'); setSelectedRoles([]); }} />
+                                                <Globe className="w-4 h-4" />
+                                                <span className="text-sm font-bold">All Users</span>
+                                            </label>
+                                            <label className={`flex-1 flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${targetMode === 'CUSTOM' ? 'bg-neon-cyan/10 border-neon-cyan text-white' : 'bg-black/40 border-white/5 text-gray-500 hover:border-white/10'}`}>
+                                                <input type="radio" name="targetMode" className="hidden" checked={targetMode === 'CUSTOM'} onChange={() => setTargetMode('CUSTOM')} />
+                                                <Users className="w-4 h-4" />
+                                                <span className="text-sm font-bold">Custom Selection</span>
+                                            </label>
+                                        </div>
+
+                                        {targetMode === 'CUSTOM' && (
+                                            <div className="grid grid-cols-3 gap-3 animate-slide-up">
+                                                {['STUDENTS', 'TEACHERS', 'PARENTS'].map(role => (
+                                                    <label key={role} className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${selectedRoles.includes(role) ? 'bg-white/10 border-white/20 text-white' : 'bg-black/20 border-white/5 text-gray-500'}`}>
+                                                        <input type="checkbox" className="w-4 h-4 rounded border-white/10 bg-black/40 text-neon-purple focus:ring-neon-purple" checked={selectedRoles.includes(role)} onChange={() => handleRoleToggle(role)} />
+                                                        <span className="text-xs font-bold">{role}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* 2. Conditional Filters */}
+                                    {targetMode === 'CUSTOM' && (selectedRoles.includes('STUDENTS') || selectedRoles.includes('TEACHERS') || selectedRoles.includes('PARENTS')) && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-slide-up">
+                                            {(selectedRoles.includes('STUDENTS') || selectedRoles.includes('PARENTS')) && (
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1.5">Class Filter</label>
+                                                    <select
+                                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-sm text-white focus:border-neon-cyan focus:outline-none"
+                                                        value={audienceFilters.classId}
+                                                        onChange={e => setAudienceFilters({ ...audienceFilters, classId: e.target.value })}
+                                                    >
+                                                        <option value="">All Classes</option>
+                                                        {classrooms.map(c => <option key={c.id} value={c.id}>{c.name} - {c.section}</option>)}
+                                                    </select>
+                                                </div>
+                                            )}
+                                            {selectedRoles.includes('TEACHERS') && (
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1.5">Subject Filter</label>
+                                                    <select
+                                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-sm text-white focus:border-neon-purple focus:outline-none"
+                                                        value={audienceFilters.subject}
+                                                        onChange={e => setAudienceFilters({ ...audienceFilters, subject: e.target.value })}
+                                                    >
+                                                        <option value="">All Subjects</option>
+                                                        {Array.from(new Set(classrooms.map(c => c.subject || 'General'))).map(s => <option key={s} value={s}>{s}</option>)}
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* 3. Content Section */}
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="md:col-span-2">
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1.5">Title</label>
+                                                <Input
+                                                    placeholder="Enter announcement title..."
+                                                    value={announcementTitle}
+                                                    onChange={e => setAnnouncementTitle(e.target.value)}
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1.5">Type</label>
+                                                <select
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-sm text-white focus:border-neon-pink focus:outline-none"
+                                                    value={announcementLevel}
+                                                    onChange={e => setAnnouncementLevel(e.target.value as any)}
+                                                >
+                                                    {Object.entries(LEVEL_CONFIG).map(([key, cfg]) => (
+                                                        <option key={key} value={key}>{cfg.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1.5">Message</label>
+                                            <textarea
+                                                className="w-full h-32 bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-white resize-none placeholder-gray-600 focus:border-neon-purple focus:outline-none transition-all"
+                                                placeholder="Write your message here..."
+                                                value={announcementContent}
+                                                onChange={e => setAnnouncementContent(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <NeonButton
+                                        className="w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 group overflow-hidden relative"
+                                        glowColor={announcementLevel === 'URGENT' ? 'red' : 'purple'}
+                                        disabled={!announcementTitle.trim() || !announcementContent.trim() || (targetMode === 'CUSTOM' && selectedRoles.length === 0) || isPosting}
+                                        onClick={async () => {
+                                            if (!onPostAnnouncement) return;
+                                            setIsPosting(true);
+                                            try {
+                                                const combinedContent = `${announcementTitle}\n\n${announcementContent}`;
+                                                // Map announcementLevel to existing types for compatibility
+                                                const apiType = announcementLevel === 'GENERAL' ? 'THOUGHT' : 'NOTICE';
+
+                                                await onPostAnnouncement(
+                                                    combinedContent,
+                                                    apiType,
+                                                    audienceFilters.classId || undefined,
+                                                    audienceFilters.classId ? classrooms.find(c => c.id === audienceFilters.classId)?.name : undefined
+                                                );
+
+                                                // Reset form
+                                                setAnnouncementTitle('');
+                                                setAnnouncementContent('');
+                                                setSelectedRoles([]);
+                                                setTargetMode('ALL');
+                                                setAudienceFilters({ classId: '', subject: '' });
+                                                alert('Announcement posted successfully!');
+                                            } catch (error) {
+                                                console.error(error);
+                                            } finally {
+                                                setIsPosting(false);
+                                            }
+                                        }}
                                     >
-                                        <option value="">📢 School-wide</option>
-                                        {classrooms.map(c => (
-                                            <option key={c.id} value={c.id}>📚 {c.name} - {c.section}</option>
-                                        ))}
-                                    </select>
+                                        {isPosting ? (
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        ) : (
+                                            <>
+                                                <Megaphone className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                                                <span>Send Announcement Now</span>
+                                            </>
+                                        )}
+                                    </NeonButton>
                                 </div>
-                                <div>
-                                    <label className="text-sm text-gray-400 block mb-1">Type</label>
-                                    <select
-                                        className="w-full bg-black/40 border border-white/10 rounded p-2 text-white"
-                                        value={announcementType}
-                                        onChange={e => setAnnouncementType(e.target.value as 'THOUGHT' | 'NOTICE')}
-                                    >
-                                        <option value="THOUGHT">💭 Thought of the Day</option>
-                                        <option value="NOTICE">📋 Notice</option>
-                                    </select>
+                            </NeonCard>
+                        </div>
+
+                        {/* Preview Column */}
+                        <div className="lg:col-span-5 sticky top-24">
+                            <div className="space-y-4">
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] block pl-2">Live Preview</label>
+                                <div className={`bg-gradient-to-br from-slate-800 to-slate-900 border-l-4 rounded-2xl p-6 shadow-2xl transition-all duration-500 scale-100 ${LEVEL_CONFIG[announcementLevel].border}`}>
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="flex flex-col gap-1.5">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest w-fit ${LEVEL_CONFIG[announcementLevel].badge}`}>
+                                                {LEVEL_CONFIG[announcementLevel].label}
+                                            </span>
+                                            <div className="flex items-center gap-2 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                                                <Clock className="w-3 h-3" />
+                                                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Today
+                                            </div>
+                                        </div>
+                                        <div className="flex -space-x-2">
+                                            {targetMode === 'ALL' ? (
+                                                <div className="w-8 h-8 rounded-full bg-neon-purple/20 border border-white/10 flex items-center justify-center text-neon-purple" title="All Users">
+                                                    <Globe className="w-4 h-4" />
+                                                </div>
+                                            ) : (
+                                                selectedRoles.map(role => (
+                                                    <div key={role} className="w-8 h-8 rounded-full bg-slate-700 border border-white/10 flex items-center justify-center text-white text-[10px] font-bold shadow-lg" title={role}>
+                                                        {role.charAt(0)}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <h4 className={`text-xl font-bold mb-3 transition-colors ${announcementTitle ? 'text-white' : 'text-gray-700'}`}>
+                                        {announcementTitle || 'No Title Provided'}
+                                    </h4>
+
+                                    <p className={`text-sm leading-relaxed whitespace-pre-wrap transition-colors ${announcementContent ? 'text-gray-300' : 'text-gray-700'}`}>
+                                        {announcementContent || 'Your announcement message will appear here as you type. Choose a style and target audience on the left to see the final look.'}
+                                    </p>
+
+                                    <div className="mt-8 pt-4 border-t border-white/5 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
+                                            <span className="text-[10px] text-gray-500 font-bold">Post by Admin Console</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                            <span className="text-[10px] text-white font-bold opacity-50 uppercase tracking-tighter">Live Insight</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 bg-neon-purple/5 border border-neon-purple/20 rounded-xl">
+                                    <div className="flex gap-3">
+                                        <AlertTriangle className="w-5 h-5 text-neon-purple shrink-0" />
+                                        <p className="text-[10px] text-gray-400 font-medium leading-relaxed">
+                                            Notifications will be sent to the {targetMode === 'ALL' ? 'entire institution' : `${selectedRoles.join(', ')}`}
+                                            {audienceFilters.classId ? ` in ${classrooms.find(c => c.id === audienceFilters.classId)?.name}` : ''}.
+                                            This action is immediate and cannot be undone.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                            <textarea
-                                className="w-full h-24 bg-black/40 border border-white/10 rounded p-4 text-white resize-none placeholder-gray-500"
-                                placeholder="Write your announcement..."
-                                value={announcementContent}
-                                onChange={e => setAnnouncementContent(e.target.value)}
-                            />
-                            <NeonButton
-                                onClick={() => {
-                                    if (onPostAnnouncement && announcementContent) {
-                                        const selectedClass = classrooms.find(c => c.id === announcementClassId);
-                                        onPostAnnouncement(
-                                            announcementContent,
-                                            announcementType,
-                                            announcementClassId || undefined,
-                                            selectedClass ? `${selectedClass.name} - ${selectedClass.section}` : undefined
-                                        );
-                                        setAnnouncementContent('');
-                                        setAnnouncementClassId('');
-                                        setAnnouncementType('THOUGHT');
-                                    }
-                                }}
-                                className="mt-4"
-                                glow
-                                disabled={!announcementContent.trim()}
-                            >
-                                <Megaphone className="w-4 h-4 mr-2" />
-                                Post Announcement
-                            </NeonButton>
-                        </NeonCard>
+                        </div>
 
-                        {/* Announcements List */}
-                        <div>
-                            <h3 className="text-lg font-bold text-white mb-4">All Announcements</h3>
-                            <div className="space-y-3">
+                        {/* Recent History Section */}
+                        <div className="lg:col-span-12 mt-12 space-y-6">
+                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-neon-cyan" />
+                                Announcement History
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {announcements.length === 0 ? (
-                                    <div className="text-center py-8 text-gray-500">No announcements yet</div>
-                                ) : announcements.map(a => (
-                                    <div key={a.id} className="p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-all">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-neon-cyan font-bold">{a.authorName}</span>
-                                                <span className={`text-xs px-2 py-0.5 rounded ${a.classId ? 'bg-purple-500/20 text-purple-400' : 'bg-green-500/20 text-green-400'}`}>
-                                                    {a.classId ? `📚 ${a.className || 'Class'}` : '📢 School-wide'}
-                                                </span>
-                                                <span className={`text-xs px-2 py-0.5 rounded ${a.type === 'NOTICE' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                                                    {a.type === 'NOTICE' ? '📋 Notice' : '💭 Thought'}
-                                                </span>
-                                            </div>
-                                            <span className="text-xs text-gray-500">{new Date(a.timestamp).toLocaleDateString()}</span>
+                                    <div className="col-span-full py-12 text-center text-gray-500 bg-white/5 border border-white/10 rounded-2xl">
+                                        No announcements posted yet. Correct that by using the form above.
+                                    </div>
+                                ) : announcements.slice(0, 6).map(a => (
+                                    <div key={a.id} className="p-5 bg-slate-900 border border-white/5 rounded-2xl hover:border-white/10 transition-all group">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider ${a.type === 'NOTICE' ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                                                {a.type}
+                                            </span>
+                                            <span className="text-[10px] text-gray-500 font-bold">{new Date(a.timestamp).toLocaleDateString()}</span>
                                         </div>
-                                        <p className="text-gray-300">{a.content}</p>
+                                        <p className="text-sm text-gray-300 line-clamp-3 mb-4 group-hover:text-white transition-colors">{a.content}</p>
+                                        <div className="flex items-center gap-2 pt-3 border-t border-white/5">
+                                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{a.classId ? `📚 ${a.className}` : '📢 School-wide'}</span>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

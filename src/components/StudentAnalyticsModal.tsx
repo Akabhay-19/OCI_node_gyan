@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../services/api';
 import { Student, Assignment } from '../types';
 import { NeonCard, NeonButton } from './UIComponents';
 import { X, BarChart2, TrendingUp, PieChart, Activity, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
@@ -37,7 +38,6 @@ export const StudentAnalyticsModal: React.FC<StudentAnalyticsModalProps> = ({ st
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
 
                 // Fetch submissions
                 const subsRes = await fetch(`${API_URL}/students/${student.id}/submissions`);

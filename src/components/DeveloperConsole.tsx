@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NeonCard, NeonButton, Input } from './UIComponents';
 import { SchoolProfile, Classroom, Student, SiteContent, TeamMember } from '../types';
 import { LayoutDashboard, Users, School, GraduationCap, ArrowLeft, RefreshCw, BarChart, Copy, Layers, ChevronRight, ChevronDown, Monitor, Trash2, Plus, Save, Terminal, Cpu, Zap, Sparkles, Check } from 'lucide-react';
-import { api } from '../services/api';
+import { api, API_URL } from '../services/api';
 import { DeveloperAPI } from './Features/DeveloperAPI';
 
 interface DevStats {
@@ -105,8 +105,6 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
 
     const fetchAIConfig = async () => {
         try {
-            const API_URL = (import.meta as any).env.VITE_API_URL ||
-                ((import.meta as any).env.PROD ? '/api' : 'http://localhost:5000/api');
             const res = await fetch(`${API_URL}/ai/config`, { headers: api.getAuthHeaders() });
             if (res.ok) {
                 const config = await res.json();
@@ -120,8 +118,6 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
     const fetchFreeModels = async () => {
         setLoadingModels(true);
         try {
-            const API_URL = (import.meta as any).env.VITE_API_URL ||
-                ((import.meta as any).env.PROD ? '/api' : 'http://localhost:5000/api');
             const res = await fetch(`${API_URL}/ai/free-models`, { headers: api.getAuthHeaders() });
             if (res.ok) {
                 const data = await res.json();
@@ -137,8 +133,7 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
     const saveAIConfig = async (provider: 'openrouter' | 'gemini', model: string) => {
         setSavingConfig(true);
         try {
-            const API_URL = (import.meta as any).env.VITE_API_URL ||
-                ((import.meta as any).env.PROD ? '/api' : 'http://localhost:5000/api');
+
             const res = await fetch(`${API_URL}/ai/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -160,8 +155,6 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
     const saveAudioModel = async (audioModel: string) => {
         setSavingConfig(true);
         try {
-            const API_URL = (import.meta as any).env.VITE_API_URL ||
-                ((import.meta as any).env.PROD ? '/api' : 'http://localhost:5000/api');
             const res = await fetch(`${API_URL}/ai/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -230,8 +223,6 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
     const fetchSchoolDetails = async (schoolId: string) => {
         setLoading(true);
         try {
-            const API_URL = (import.meta as any).env.VITE_API_URL ||
-                ((import.meta as any).env.PROD ? '/api' : 'http://localhost:5000/api');
             const res = await fetch(`${API_URL}/dev/school/${schoolId}/details`, { headers: api.getAuthHeaders() });
             if (res.ok) {
                 const data = await res.json();
@@ -1011,12 +1002,12 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
 
                             {/* Raw API Access */}
                             <div className="flex gap-4">
-                                <a href="http://localhost:5000/api/dev/teachers" target="_blank" rel="noopener noreferrer">
+                                <a href={`${API_URL}/dev/teachers`} target="_blank" rel="noopener noreferrer">
                                     <NeonButton variant="secondary" size="sm">
                                         <BarChart className="w-4 h-4 mr-2" /> All Teachers JSON
                                     </NeonButton>
                                 </a>
-                                <a href="http://localhost:5000/api/dev/students" target="_blank" rel="noopener noreferrer">
+                                <a href={`${API_URL}/dev/students`} target="_blank" rel="noopener noreferrer">
                                     <NeonButton variant="secondary" size="sm">
                                         <BarChart className="w-4 h-4 mr-2" /> All Students JSON
                                     </NeonButton>
@@ -1169,7 +1160,7 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
                                                             {t.assignedClasses}
                                                         </td>
                                                         <td className="p-3 text-right">
-                                                            <a href={`http://localhost:5000/api/dev/teacher/${t.id}`} target="_blank" rel="noopener noreferrer">
+                                                            <a href={`${API_URL}/dev/teacher/${t.id}`} target="_blank" rel="noopener noreferrer">
                                                                 <button className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-500/30">JSON</button>
                                                             </a>
                                                         </td>
@@ -1228,7 +1219,7 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
                                                             </span>
                                                         </td>
                                                         <td className="p-3 text-right">
-                                                            <a href={`http://localhost:5000/api/dev/student/${s.id}`} target="_blank" rel="noopener noreferrer">
+                                                            <a href={`${API_URL}/dev/student/${s.id}`} target="_blank" rel="noopener noreferrer">
                                                                 <button className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-1 rounded hover:bg-cyan-500/30">JSON</button>
                                                             </a>
                                                         </td>
