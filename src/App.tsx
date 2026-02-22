@@ -733,12 +733,15 @@ const AppContent: React.FC = () => {
       navigate('/team');
     } else if (tab === 'CONTACT') {
       navigate('/contact');
+    } else if (tab === 'ROLE_SELECTION') {
+      setAuthMode('login');
+      navigate('/auth');
     } else if (tab === 'HOME' && !appState.userRole) {
       navigate('/');
     } else {
       navigateToDashboardTab(tab);
     }
-  }, [navigate, appState.userRole, navigateToDashboardTab]);
+  }, [navigate, appState.userRole, navigateToDashboardTab, setAuthMode]);
 
   const handleLayoutUpdateUser = React.useCallback((updated: Student | Teacher | Parent) => {
     if (appState.userRole === 'STUDENT') {

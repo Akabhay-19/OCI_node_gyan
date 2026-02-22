@@ -18,6 +18,10 @@ export const GoogleAuthBlock: React.FC<GoogleAuthBlockProps> = React.memo(({
     error,
     role
 }) => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+    if (!clientId) return null;
+
     return (
         <div className="flex flex-col gap-2">
             <p className="text-xs text-gray-400 text-center">Or sign in with</p>

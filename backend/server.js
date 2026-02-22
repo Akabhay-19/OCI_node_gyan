@@ -124,7 +124,6 @@ app.use((req, res, next) => {
     if (req.originalUrl !== '/api/health' && req.originalUrl !== '/api') {
       console.log(`[API] ${req.method} ${req.originalUrl} - ${res.statusCode} (${durationInMs}ms)`);
     }
-    res.setHeader('X-Response-Time', `${durationInMs}ms`);
   });
   next();
 });

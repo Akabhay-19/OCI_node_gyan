@@ -59,18 +59,34 @@ export const Layout: React.FC<LayoutProps> = ({ children, logoUrl, userRole, cur
     };
   }, []);
 
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMenuOpen]);
+
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   // --- MENU ITEMS CONFIG ---
-  const getMenuItems = () => {
-    const scrollToSection = (id: string) => {
-      const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-        setIsMenuOpen(false);
-      }
-    };
+  const scrollToSection = (id: string) => {
+    if (window.location.pathname !== '/') {
+      window.location.href = `/#${id}`;
+      return;
+    }
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+      setIsMenuOpen(false);
+    }
+  };
 
+  // --- MENU ITEMS CONFIG ---
+  const getMenuItems = () => {
     // Helper to request navigation from parent app
     const navigate = (tab: string) => {
       if (onNavigate) onNavigate(tab);
@@ -79,15 +95,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, logoUrl, userRole, cur
 
     const commonItems = [
       { label: 'Home', icon: Home, action: () => { navigate('HOME'); } },
+      { label: 'About Us', icon: Layers, action: () => { navigate('ABOUT'); } },
+      { label: 'Our Team', icon: Users, action: () => { navigate('TEAM'); } },
+      { label: 'Contact', icon: FileText, action: () => { navigate('CONTACT'); } },
     ];
 
     if (!userRole) {
       return [
         ...commonItems,
         { label: 'Features', icon: Brain, action: () => scrollToSection('features') },
-        { label: 'Gamification', icon: Trophy, action: () => scrollToSection('gamification') },
-        { label: 'For Schools', icon: School, action: () => scrollToSection('empowerment') },
         { label: 'Pricing', icon: Zap, action: () => scrollToSection('pricing') },
+        { label: 'Login / Join', icon: LayoutDashboard, action: () => navigate('ROLE_SELECTION') },
       ];
     }
 
@@ -220,52 +238,104 @@ export const Layout: React.FC<LayoutProps> = ({ children, logoUrl, userRole, cur
       <main className="relative z-10 flex flex-col min-h-screen">
         {/* Header - Conditionally rendered */}
         {!hideHeader && (
-          <header className="p-6 flex justify-between items-center glass-panel sticky top-0 z-50 border-b border-white/5">
+          <header className="px-2 py-3 flex justify-between items-center glass-panel sticky top-0 z-50 border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
             <div className="flex items-center gap-2 md:gap-4">
+              {/* Hamburger and Logo */}
               <button
                 onClick={toggleMenu}
-                className="p-2 -ml-2 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                className="p-2 -ml-2 rounded-lg hover:bg-white/10 text-gray-300 hover:text-cyan-400 transition-all duration-300 transform hover:scale-110"
               >
                 <Menu className="w-5 h-5 md:w-6 md:h-6" />
               </button>
 
-              <div className="flex items-center gap-2 md:gap-3">
+              <div className="flex items-center gap-2 md:gap-3 group cursor-pointer" onClick={() => onNavigate?.('HOME')}>
                 {logoUrl ? (
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg overflow-hidden border border-neon-cyan/50 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg overflow-hidden border border-neon-cyan/50 shadow-[0_0_10px_rgba(6,182,212,0.3)] group-hover:shadow-[0_0_15px_rgba(6,182,212,0.6)] transition-all">
                     <img src={logoUrl} alt="School Logo" className="w-full h-full object-cover" />
                   </div>
                 ) : null}
                 <div>
-                  <img src={logoNew} alt="Gyan AI" className="h-10 md:h-16 lg:h-20 w-auto object-contain logo-glow" />
+                  <img src={logoNew} alt="Gyan AI" className="h-8 md:h-12 lg:h-14 w-auto object-contain logo-glow group-hover:scale-105 transition-transform" />
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              {/* [NEW] Home Navigation Links - Moved to Right */}
-              {(!userRole || activeTab === 'HOME') && (
-                <div className="hidden md:flex items-center gap-6 mr-4">
-                  <button onClick={() => onNavigate?.('ABOUT')} className="text-gray-400 hover:text-white hover:text-neon-cyan transition-colors text-sm font-bold tracking-wide">About Us</button>
-                  <button onClick={() => onNavigate?.('TEAM')} className="text-gray-400 hover:text-white hover:text-neon-cyan transition-colors text-sm font-bold tracking-wide">Team</button>
-                  <button onClick={() => onNavigate?.('CONTACT')} className="text-gray-400 hover:text-white hover:text-neon-cyan transition-colors text-sm font-bold tracking-wide">Contact</button>
-                </div>
-              )}
+            {/* Desktop Navigation */}
+            <div className="flex items-center gap-6">
+              <div className="hidden md:flex items-center gap-8 pr-6 border-r border-white/10">
+                {/* Section Links (Only for Home/Guest) */}
+                {(!userRole || activeTab === 'HOME') && (
+                  <>
+                    <button onClick={() => scrollToSection('features')} className="relative text-gray-400 hover:text-neon-cyan transition-colors text-xs font-bold tracking-[0.2em] uppercase group/nav transition-all">
+                      FEATURES
+                      <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 group-hover/nav:w-full shadow-[0_0_8px_#00f3ff]"></span>
+                    </button>
+                    <button onClick={() => scrollToSection('pricing')} className="relative text-gray-400 hover:text-neon-cyan transition-colors text-xs font-bold tracking-[0.2em] uppercase group/nav transition-all">
+                      PRICING
+                      <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 group-hover/nav:w-full shadow-[0_0_8px_#00f3ff]"></span>
+                    </button>
+                  </>
+                )}
 
-              <div className="hidden md:block text-right">
-                <div className="text-xs text-gray-500 font-mono">v3.2.0-beta</div>
-                <div className="text-[10px] text-neon-cyan uppercase tracking-widest font-bold">System Active</div>
+                {/* Constant Policy/Info Links */}
+                {['ABOUT', 'TEAM', 'CONTACT'].map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => onNavigate?.(item)}
+                    className="relative text-gray-400 hover:text-neon-cyan transition-colors text-xs font-bold tracking-[0.2em] uppercase group/nav transition-all"
+                  >
+                    {item}
+                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 group-hover/nav:w-full shadow-[0_0_8px_#00f3ff]"></span>
+                  </button>
+                ))}
               </div>
 
-              {/* Small status dot if not in menu */}
-              <div
-                className={`w-2 h-2 rounded-full ${isAiOnline ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}
-                title={isAiOnline ? "AI Online" : "AI Offline"}
-              ></div>
+              {/* Action Area (Profile/Login) */}
+              <div className="flex items-center gap-4">
+                {userRole && currentUser ? (
+                  <div
+                    onClick={() => setShowProfileModal(true)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:border-neon-cyan/50 hover:bg-white/10 transition-all cursor-pointer group shadow-inner"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center text-white font-bold text-xs ring-2 ring-neon-cyan/20 group-hover:ring-neon-cyan group-hover:scale-105 transition-all">
+                      {(currentUser.name || 'U').charAt(0)}
+                    </div>
+                    <div className="text-left hidden lg:block">
+                      <div className="text-[10px] font-bold text-white leading-none truncate max-w-[80px]">{currentUser.name}</div>
+                      <div className="text-[8px] text-neon-cyan uppercase tracking-[0.2em] mt-1 font-black opacity-80 group-hover:opacity-100">{userRole}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => onNavigate?.('ROLE_SELECTION')}
+                    className="group relative px-6 py-2 bg-neon-cyan text-black font-black text-xs tracking-[0.25em] rounded-lg overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(0,243,255,0.4)] active:scale-95"
+                  >
+                    <div className="absolute inset-0 bg-white/40 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 skew-x-12"></div>
+                    <span className="relative">LOGIN / JOIN</span>
+                  </button>
+                )}
+
+                {/* System Status */}
+                <div className="hidden sm:flex flex-col items-end pr-4 border-r border-white/10">
+                  <div className="text-[9px] text-gray-500 font-mono tracking-tighter">BUILD v3.2</div>
+                  <div className="text-[8px] text-neon-cyan uppercase tracking-[0.25em] font-black animate-pulse">CORE ACTIVE</div>
+                </div>
+
+                <div className="relative flex items-center justify-center">
+                  <div
+                    className={`w-2.5 h-2.5 rounded-full ${isAiOnline ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-red-500 shadow-[0_0_10px_#ef4444]'} animate-pulse`}
+                    title={isAiOnline ? "Quantum AI Protocol: ONLINE" : "Quantum AI Protocol: OFFLINE"}
+                  ></div>
+                  {isAiOnline && (
+                    <div className="absolute w-3 h-3 rounded-full bg-green-500 animate-ping opacity-30"></div>
+                  )}
+                </div>
+              </div>
             </div>
           </header>
         )}
 
-        <div className="flex-grow container mx-auto px-4 py-6 md:py-12">
+        <div className="flex-grow w-full py-6 md:py-12">
           {children}
         </div>
 

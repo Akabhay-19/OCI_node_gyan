@@ -11,13 +11,45 @@ interface TeamProps {
 export const Team: React.FC<TeamProps> = ({ onBack }) => {
     const [teamMembers, setTeamMembers] = React.useState<TeamMember[]>([]);
 
+    const defaultTeam: TeamMember[] = [
+        {
+            id: "1",
+            name: "Aryan Sharma",
+            role: "Founder & AI Architect",
+            bio: "Visionary behind Gyan AI, specializing in LLM integration and adaptive learning systems.",
+            imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Aryan",
+            socials: { linkedin: "#", twitter: "#", github: "#" }
+        },
+        {
+            id: "2",
+            name: "Isha Patel",
+            role: "Head of Pedagogy",
+            bio: "Expert in educational psychology, ensuring our AI tutors follow best teaching practices.",
+            imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Isha",
+            socials: { linkedin: "#", twitter: "#", github: "#" }
+        },
+        {
+            id: "3",
+            name: "Karan Johar",
+            role: "Lead UI/UX Designer",
+            bio: "Crafting the future of educational interfaces with a focus on gamification and immersion.",
+            imageUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Karan",
+            socials: { linkedin: "#", twitter: "#", github: "#" }
+        }
+    ];
+
     React.useEffect(() => {
         const loadContent = async () => {
             try {
                 const content = await api.getSiteContent();
-                setTeamMembers(content.teamMembers || []);
+                if (content.teamMembers && content.teamMembers.length > 0) {
+                    setTeamMembers(content.teamMembers);
+                } else {
+                    setTeamMembers(defaultTeam);
+                }
             } catch (e) {
                 console.error("Failed to load team content", e);
+                setTeamMembers(defaultTeam);
             }
         };
         loadContent();
@@ -27,7 +59,7 @@ export const Team: React.FC<TeamProps> = ({ onBack }) => {
         <div className="min-h-screen bg-black text-white relative overflow-hidden">
             <LiquidBackground />
 
-            <div className="relative z-10 container mx-auto px-4 py-8">
+            <div className="relative z-10 w-full px-4 md:px-10 lg:px-20 py-8">
                 <button
                     onClick={onBack}
                     className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8"
@@ -44,9 +76,9 @@ export const Team: React.FC<TeamProps> = ({ onBack }) => {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                    {teamMembers.map((member, idx) => (
-                        <div key={idx} className="glass-panel p-6 rounded-2xl border border-white/5 hover:border-white/20 transition-all hover:-translate-y-2 group">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
+                    {teamMembers.map((member) => (
+                        <div key={member.id} className="glass-panel p-6 rounded-2xl border border-white/5 hover:border-white/20 transition-all hover:-translate-y-2 group">
                             <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-6 border-2 border-white/10 group-hover:border-neon-purple/50 transition-colors">
                                 <img src={member.imageUrl} alt={member.name} className="w-full h-full object-cover" />
                             </div>
