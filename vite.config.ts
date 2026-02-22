@@ -3,7 +3,9 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
+  const env = loadEnv(mode, process.cwd(), '');
+  const finalEnv = { ...env, ...process.env };
+
   return {
     server: {
       port: 3000,
@@ -11,9 +13,9 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(env.VITE_GOOGLE_CLIENT_ID || env.GOOGLE_CLIENT_ID)
+      'process.env.API_KEY': JSON.stringify(finalEnv.GEMINI_API_KEY),
+      'process.env.GEMINI_API_KEY': JSON.stringify(finalEnv.GEMINI_API_KEY),
+      'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(finalEnv.VITE_GOOGLE_CLIENT_ID || finalEnv.GOOGLE_CLIENT_ID)
     },
     resolve: {
       alias: {
