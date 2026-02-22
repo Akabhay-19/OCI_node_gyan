@@ -1,8 +1,8 @@
 import { SchoolProfile, Student, Classroom, Announcement, Teacher, SiteContent } from '../types';
 import { jwtDecode } from 'jwt-decode';
 
-// In production, use relative path (served by same backend). In development, use localhost:5000.
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api');
+// In production, use relative path (served by same backend). In development, use Render backend or localhost.
+export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'https://oci-node-gyan.onrender.com/api');
 
 export const AI_MODELS = [
     { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.5 (Flash)', provider: 'Google' }

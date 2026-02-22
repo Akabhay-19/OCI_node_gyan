@@ -29,7 +29,7 @@ const TabFallback = () => (
     </div>
 );
 import { BookOpen, Target, Trophy, ClipboardList, Sparkles, Feather, CheckCircle2, X, XCircle, AlertCircle, AlertTriangle, Clock, Star, TrendingUp, Calendar, Copy, School, Bell, Plus, Network, Zap, History, ChevronLeft, ChevronRight, LayoutDashboard, Globe, CircleHelp, Languages, ArrowRight, Trash2, FolderOpen, Brain } from 'lucide-react';
-import { api } from '../services/api';
+import { api, API_URL } from '../services/api';
 
 interface StudentDashboardProps {
     student: Student;
@@ -77,7 +77,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     useEffect(() => {
         const fetchSuggestions = async () => {
             try {
-                const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
                 const res = await fetch(`${API_URL}/students/${student.id}/suggestions`);
                 if (res.ok) {
                     setSuggestions(await res.json());
@@ -224,8 +223,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             let scoredCount = 0;
 
             try {
-                const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
-
                 let assignments: any[] = [];
                 if (selectedClassId === 'ALL') {
                     const promises = availableClassIds.map(cid => fetch(`${API_URL}/assignments?classId=${cid}`).then(r => r.ok ? r.json() : []));

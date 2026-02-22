@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../services/api';
 import { Student, Assignment, Submission } from '../types';
 import { NeonCard, NeonButton, Input } from './UIComponents';
 import { X, User, Calendar, BookOpen, AlertTriangle, BarChart2, PieChart as PieChartIcon, Activity, Send, CheckCircle, Clock, Target } from 'lucide-react';
@@ -33,7 +34,6 @@ export const StudentReportModal: React.FC<StudentReportModalProps> = ({ student,
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
 
                 // Fetch assignments for student's class
                 if (student.classId) {
@@ -59,7 +59,6 @@ export const StudentReportModal: React.FC<StudentReportModalProps> = ({ student,
         if (!suggestion.trim()) return;
         setIsSending(true);
         try {
-            const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
             const res = await fetch(`${API_URL}/suggestions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

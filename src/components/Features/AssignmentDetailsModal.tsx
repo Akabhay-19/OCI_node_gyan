@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NeonCard, NeonButton } from '../UIComponents';
+import { API_URL } from '../../services/api';
 import { Assignment, Student } from '../../types';
 import { X, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
@@ -35,7 +36,6 @@ export const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({ 
     useEffect(() => {
         const fetchSubmissions = async () => {
             try {
-                const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
                 const res = await fetch(`${API_URL}/assignments/${assignment.id}/submissions`);
                 if (res.ok) {
                     const data = await res.json();

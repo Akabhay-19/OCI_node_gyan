@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../services/api';
 import { Sparkles, ChevronDown, Check, Zap } from 'lucide-react';
 
 interface AIModel {
@@ -15,7 +16,6 @@ interface ModelSelectorProps {
     compact?: boolean;
 }
 
-const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
 
 export const ModelSelector: React.FC<ModelSelectorProps> = ({ onModelChange, compact = false }) => {
     const [models, setModels] = useState<AIModel[]>([]);

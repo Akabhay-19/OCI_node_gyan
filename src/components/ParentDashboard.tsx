@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../services/api';
 import { NeonCard, NeonButton } from './UIComponents';
 import { User, BookOpen, AlertTriangle, BarChart2, CheckCircle, Calendar, LogOut, ChevronDown, Bell, ChevronLeft, Folder } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
@@ -46,7 +47,6 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({ schoolName, on
     const fetchAssignments = async () => {
       if (!selectedClassId) return;
       try {
-        const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
         const res = await fetch(`${API_URL}/assignments?classId=${selectedClassId}`);
         if (res.ok) {
           const data = await res.json();
@@ -76,7 +76,6 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({ schoolName, on
     if (!selectedClassId || !selectedStudent.id) return;
     const fetchSubmissions = async () => {
       try {
-        const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
         const res = await fetch(`${API_URL}/submissions?studentId=${selectedStudent.id}&classId=${selectedClassId}`);
         if (res.ok) setSubmissions(await res.json());
       } catch (e) { }

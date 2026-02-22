@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { api, DEFAULT_MODEL } from '../../services/api';
+import { api, DEFAULT_MODEL, API_URL } from '../../services/api';
 import { StudyPlanItem, QuizQuestion, Student, WeaknessRecord, LearningRecommendation } from '../../types';
 import { Bot, Sparkles, ArrowRight, Youtube, ExternalLink, AlertTriangle, BookOpen, Lightbulb, Mic, FileText, Headphones, XCircle, CheckCircle, CircleHelp, Link as LinkIcon, Menu, History, MessageSquare } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -13,7 +13,6 @@ import { HistorySidebar } from './HistorySidebar';
 import { RemedialModal } from './RemedialModal';
 import { XP_REWARDS, calculateLevel } from '../../services/gamification';
 
-const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:5000/api');
 
 interface AdaptiveLearningProps {
     onStartVoice?: () => void;
