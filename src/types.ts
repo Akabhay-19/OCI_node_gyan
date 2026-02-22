@@ -261,6 +261,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   glow?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  glowColor?: 'cyan' | 'orange' | 'blue' | 'red' | 'green' | 'purple';
 }
 
 export interface CardProps {

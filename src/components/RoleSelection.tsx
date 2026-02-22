@@ -86,7 +86,7 @@ export const RoleSelection: React.FC<RoleSelectionProps> = React.memo(({ onSelec
           </NeonButton>
         )}
         <div className="text-center space-y-6"><h2 className="text-6xl md:text-8xl font-display font-bold text-white tracking-tighter">GYAN<span className="text-signal-orange">.AI</span></h2><p className="text-xl text-gray-400">AI-Powered. Gamified. Data-Driven.</p></div>
-        <div className="flex flex-wrap justify-center gap-6 w-full max-w-4xl px-4">
+        <div className="flex flex-wrap justify-center gap-6 w-full max-w-7xl px-4">
           {showLoginButton && (
             <button onClick={() => setView('LOGIN')} className="group px-8 py-8 bg-white/5 border border-white/10 hover:border-neon-cyan/50 rounded-xl flex flex-col items-center gap-4 min-w-[200px]"><LogIn className="w-8 h-8 text-neon-cyan" /><span className="font-bold text-white">LOGIN</span></button>
           )}
@@ -375,7 +375,7 @@ export const RoleSelection: React.FC<RoleSelectionProps> = React.memo(({ onSelec
           </div>
           <NeonButton variant="ghost" onClick={() => setView('HOME')} className="absolute top-0 right-4 md:right-8"><ArrowLeft className="w-4 h-4 mr-2" /> Back</NeonButton>
           <h2 className="text-4xl font-bold text-white">I am a...</h2>
-          <div className="grid grid-cols-2 gap-6 w-full max-w-2xl px-4">
+          <div className="grid grid-cols-2 gap-6 w-full max-w-4xl px-4">
             <button onClick={() => setLoginRole('TEACHER')} className="group px-8 py-12 bg-white/5 border border-white/10 hover:border-neon-cyan/50 rounded-xl flex flex-col items-center gap-4 hover:bg-white/10 transition-all">
               <Users className="w-12 h-12 text-neon-cyan" />
               <span className="font-bold text-white text-xl">TEACHER</span>

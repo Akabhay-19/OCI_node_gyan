@@ -16,7 +16,7 @@ export const NeonCard: React.FC<CardProps & React.HTMLAttributes<HTMLDivElement>
   );
 });
 
-export const NeonButton: React.FC<ButtonProps & { isLoading?: boolean }> = memo(({ children, variant = 'primary', size = 'md', glow = false, className = '', isLoading = false, disabled, ...props }) => {
+export const NeonButton: React.FC<ButtonProps & { isLoading?: boolean }> = memo(({ children, variant = 'primary', size = 'md', glow = false, glowColor = 'cyan', className = '', isLoading = false, disabled, ...props }) => {
   const baseStyles = "relative rounded-lg font-display font-bold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
 
   const sizes = {

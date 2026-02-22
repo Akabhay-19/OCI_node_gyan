@@ -13,6 +13,19 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole, onNavigate }) => {
+    React.useEffect(() => {
+        const hash = window.location.hash;
+        if (hash) {
+            const id = hash.replace('#', '');
+            const element = document.getElementById(id);
+            if (element) {
+                setTimeout(() => {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                }, 500);
+            }
+        }
+    }, []);
+
     return (
         <div className="flex flex-col gap-10 md:gap-20 pb-10 md:pb-20 hover-glow-text relative overflow-x-hidden">
             {/* <LiquidBackground /> Disabled for performance optimization */}
@@ -22,65 +35,48 @@ export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole,
                 {/* ... existing hero background ... */}
                 <div className="absolute inset-0 z-0">
                     <SelfDrawingHero />
-                    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[150px] animate-breathe"></div>
-                    <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-cyan/20 rounded-full blur-[150px] animate-breathe" style={{ animationDelay: '3s' }}></div>
+                    <div className="absolute top-0 left-0 w-[40rem] h-[40rem] bg-neon-purple/10 rounded-full blur-[180px] animate-breathe"></div>
+                    <div className="absolute bottom-0 right-0 w-[40rem] h-[40rem] bg-neon-cyan/10 rounded-full blur-[180px] animate-breathe" style={{ animationDelay: '4s' }}></div>
                 </div>
 
 
 
 
-                <div className="relative z-10 max-w-4xl mx-auto space-y-8">
-                    {/* Brand Logo - Top Centered - REMOVED */}
-
-
-
-
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel border border-neon-cyan/30 text-neon-cyan text-sm font-bold tracking-wider animate-fade-in-up">
-                        <Zap className="w-4 h-4" />
-                        <span>POWERED BY GOOGLE GEMINI</span>
+                <div className="relative z-10 w-full space-y-12">
+                    <div className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full glass-panel border border-neon-cyan/20 text-neon-cyan text-xs font-black tracking-[0.3em] uppercase animate-fade-in-up shadow-[0_0_20px_rgba(0,243,255,0.1)]">
+                        <Zap className="w-4 h-4 animate-pulse" />
+                        <span>QUANTUM INTELLIGENCE SYSTEM</span>
                     </div>
 
-                    <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-bold leading-tight animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                        Master Your <br />
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-neon-cyan via-white to-neon-purple drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]">
-                            Potential
+                    <h1 className="text-5xl sm:text-7xl md:text-9xl font-display font-bold leading-none animate-fade-in-up tracking-tighter" style={{ animationDelay: '0.4s' }}>
+                        Knowledge <br />
+                        <span className="bg-clip-text text-transparent bg-gradient-to-br from-neon-cyan via-white to-neon-purple drop-shadow-[0_0_30px_rgba(0,243,255,0.4)] transition-all duration-500 hover:drop-shadow-[0_0_50px_rgba(188,19,254,0.6)]">
+                            Evolved
                         </span>
                     </h1>
 
-                    {/* BeamCircle removed from inside container to move to edges */}
-
-                    <p className="text-lg md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                        Experience the next evolution of education. AI-powered tutoring, immersive gamification, and real-time analytics in one unified platform.
+                    <p className="text-xl md:text-3xl text-gray-400 w-full leading-relaxed animate-fade-in-up font-light">
+                        Step into the future of learning. An AI-powered ecosystem designed to maximize human potential through data-driven personalization.
                     </p>
 
-                    <div className="flex flex-col md:flex-row items-center justify-center gap-6 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-8 animate-fade-in-up pt-4" style={{ animationDelay: '1.2s' }}>
                         <button
                             onClick={onGetStarted}
-                            className="group relative w-full md:w-auto px-8 py-4 bg-neon-cyan text-black font-bold text-lg rounded-xl overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(6,182,212,0.6)]"
+                            className="group relative px-10 py-5 bg-neon-cyan text-black font-black text-xl rounded-2xl overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(0,243,255,0.5)] active:scale-95"
                         >
-                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                            <span className="relative flex items-center justify-center gap-2">
-                                Get Started Free <ArrowRight className="w-5 h-5" />
+                            <div className="absolute inset-0 bg-white/40 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 skew-x-12"></div>
+                            <span className="relative flex items-center justify-center gap-3">
+                                INITIATE LEARNING <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                             </span>
                         </button>
 
                         <button
                             onClick={onLogin}
-                            className="w-full md:w-auto px-8 py-4 glass-panel border border-white/10 hover:border-neon-purple/50 text-white font-bold text-lg rounded-xl transition-all hover:bg-white/5 hover:scale-105"
+                            className="group relative px-10 py-5 glass-panel border border-white/10 hover:border-neon-purple/50 text-white font-black text-xl rounded-2xl transition-all hover:bg-neon-purple/10 hover:scale-105 active:scale-95 overflow-hidden"
                         >
-                            Existing User Login
+                            <div className="absolute inset-0 bg-neon-purple/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                            <span className="relative">RESTORE SESSION</span>
                         </button>
-
-                        {/* Hidden Dev Channel */}
-                        {onDevConsole && (
-                            <button
-                                onClick={onDevConsole}
-                                title="Developer Console"
-                                className="px-4 py-4 glass-panel border border-white/5 text-gray-600 hover:text-white hover:border-white/20 rounded-xl transition-all"
-                            >
-                                <Activity className="w-5 h-5" />
-                            </button>
-                        )}
                     </div>
                 </div>
             </section>
@@ -132,55 +128,52 @@ export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole,
             </div>
 
             {/* Immersive Learning Section */}
-            <section id="features" className="container mx-auto px-4">
-                <div className="text-center mb-16">
+            <section id="features" className="w-full py-10">
+                <div className="w-full text-center mb-16 px-4">
                     <h2 className="text-4xl md:text-5xl font-display font-bold mb-4">
                         <span className="bg-clip-text text-transparent bg-gradient-to-r from-neon-cyan to-green-400">
                             Immersive Learning
                         </span>
                     </h2>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
+                    <p className="text-gray-400 w-full text-xl leading-relaxed">
                         Forget boring textbooks. Dive into a learning experience that adapts to you.
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
                     <FeatureCard
                         icon={<Brain className="w-8 h-8 text-neon-cyan" />}
                         title="Adaptive AI Tutor"
                         description="A personal tutor that understands your weak spots and creates custom study plans just for you."
-                        delay="0s"
-                        className="animate-float-slow"
+                        delay="1.5s"
+                        className="animate-fade-in-up"
                     />
                     <FeatureCard
                         icon={<BookOpen className="w-8 h-8 text-neon-purple" />}
                         title="Story Mode"
                         description="Learn complex concepts through interactive narratives and adventures. History and Science come alive."
-                        delay="0.1s"
-                        className="animate-float-slow"
-                        style={{ animationDelay: '1s' }}
+                        delay="1.7s"
+                        className="animate-fade-in-up"
                     />
                     <FeatureCard
                         icon={<Mic className="w-8 h-8 text-pink-500" />}
                         title="Voice Tutor"
                         description="Practice languages or ask questions naturally. Our AI speaks your language, literally."
-                        delay="0.2s"
-                        className="animate-float-slow"
-                        style={{ animationDelay: '2s' }}
+                        delay="1.9s"
+                        className="animate-fade-in-up"
                     />
                     <FeatureCard
                         icon={<Target className="w-8 h-8 text-yellow-400" />}
                         title="Smart Quizzes"
                         description="AI-generated quizzes that test your true understanding, not just memorization."
-                        delay="0.3s"
-                        className="animate-float-slow"
-                        style={{ animationDelay: '3s' }}
+                        delay="2.1s"
+                        className="animate-fade-in-up"
                     />
                 </div>
             </section>
 
             {/* Gamification Section */}
-            <section id="gamification" className="container mx-auto px-4 py-10">
+            <section id="gamification" className="w-full py-10">
                 <div className="glass-panel border border-neon-purple/30 rounded-3xl p-8 md:p-12 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-bl from-neon-purple/10 to-transparent pointer-events-none"></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center relative z-10">
@@ -228,14 +221,14 @@ export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole,
             </section>
 
             {/* Empowerment Tools Section */}
-            <section id="empowerment" className="container mx-auto px-4">
+            <section id="empowerment" className="w-full py-10">
                 <div className="text-center mb-16">
                     <h2 className="text-4xl md:text-5xl font-display font-bold mb-4">
                         <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500">
                             Empowerment Tools
                         </span>
                     </h2>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
+                    <p className="text-gray-400 w-full">
                         Powerful dashboards for Teachers, Schools, and Parents to track and guide progress.
                     </p>
                 </div>
@@ -269,15 +262,15 @@ export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole,
             </section>
 
             {/* Pricing Plans */}
-            <section id="pricing" className="container mx-auto px-4 py-20">
-                <h2 className="text-4xl md:text-5xl font-display font-bold text-center mb-6">
+            <section id="pricing" className="w-full py-20">
+                <h2 className="w-full text-4xl md:text-5xl font-display font-bold text-center mb-6">
                     Simple, Transparent Pricing
                 </h2>
-                <p className="text-gray-400 text-center mb-16 max-w-2xl mx-auto">
+                <p className="w-full text-gray-400 text-center mb-16 text-xl leading-relaxed">
                     Start for free and scale as you grow. Whether you're a student, teacher, or an entire institution.
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
                     <PricingCard
                         title="Student Starter"
                         price="Free"
@@ -304,11 +297,11 @@ export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole,
             </section>
 
             {/* CTA Section */}
-            <section className="container mx-auto px-4 mb-20">
+            <section className="w-full mb-20">
                 <div className="glass-panel border border-neon-cyan/20 rounded-3xl p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-12">
                     <div className="absolute inset-0 bg-gradient-to-r from-neon-cyan/10 to-neon-purple/10"></div>
 
-                    <div className="relative z-10 text-center md:text-left max-w-2xl">
+                    <div className="relative z-10 text-center md:text-left w-full">
                         <h2 className="text-3xl md:text-4xl font-display font-bold mb-4 md:mb-6">Ready to Transform Your Future?</h2>
                         <p className="text-lg md:text-xl text-gray-300 mb-6 md:mb-8">
                             Join thousands of students and teachers who are already experiencing the power of Gyan.
@@ -326,7 +319,7 @@ export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole,
             </section>
 
             {/* Footer Links */}
-            <footer className="container mx-auto px-4 py-8 border-t border-white/5 text-center md:text-left">
+            <footer className="w-full py-8 border-t border-white/5 text-center md:text-left">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                     <p className="text-gray-500 text-sm">© 2026 Gyan AI. All rights reserved.</p>
                     <div className="flex gap-8">
