@@ -31,6 +31,7 @@ import { createAIFeatureRoutes } from './routes/ai-features.routes.js';
 import { createAnnouncementRoutes } from './routes/announcement.routes.js';
 import { createDevRoutes } from './routes/dev.routes.js';
 import { createAttendanceRoutes } from './routes/attendance.routes.js';
+import { createDraftRoutes } from './routes/drafts.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -165,6 +166,7 @@ app.use('/api', createAIFeatureRoutes(aiService, supabase, helpers, upload));
 // --- DEV & TOOLS ---
 app.use('/api/dev', createDevRoutes(supabase));
 app.use('/api/attendance', createAttendanceRoutes(supabase));
+app.use('/api/drafts', createDraftRoutes(supabase));
 
 // --- LEGACY ALIASES ---
 app.post('/api/analyze-quiz', (req, res, next) => {

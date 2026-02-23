@@ -8,11 +8,13 @@ import { LiquidBackground } from './LiquidBackground';
 interface HomeProps {
     onGetStarted: () => void;
     onLogin: () => void;
+    onDashboard: () => void;
+    isLoggedIn: boolean;
     onDevConsole?: () => void;
     onNavigate?: (page: string) => void;
 }
 
-export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole, onNavigate }) => {
+export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDashboard, isLoggedIn, onDevConsole, onNavigate }) => {
     React.useEffect(() => {
         const hash = window.location.hash;
         if (hash) {
@@ -60,23 +62,37 @@ export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole,
                     </p>
 
                     <div className="flex flex-col md:flex-row items-center justify-center gap-8 animate-fade-in-up pt-4" style={{ animationDelay: '1.2s' }}>
-                        <button
-                            onClick={onGetStarted}
-                            className="group relative px-10 py-5 bg-neon-cyan text-black font-black text-xl rounded-2xl overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(0,243,255,0.5)] active:scale-95"
-                        >
-                            <div className="absolute inset-0 bg-white/40 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 skew-x-12"></div>
-                            <span className="relative flex items-center justify-center gap-3">
-                                INITIATE LEARNING <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                            </span>
-                        </button>
+                        {isLoggedIn ? (
+                            <button
+                                onClick={onDashboard}
+                                className="group relative px-12 py-6 bg-gradient-to-r from-neon-cyan to-neon-purple text-black font-black text-2xl rounded-2xl overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_50px_rgba(0,243,255,0.6)] active:scale-95 shadow-lg"
+                            >
+                                <div className="absolute inset-0 bg-white/40 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 skew-x-12"></div>
+                                <span className="relative flex items-center justify-center gap-4">
+                                    CONTINUE TO DASHBOARD <Rocket className="w-8 h-8 animate-bounce" />
+                                </span>
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={onGetStarted}
+                                    className="group relative px-10 py-5 bg-neon-cyan text-black font-black text-xl rounded-2xl overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(0,243,255,0.5)] active:scale-95"
+                                >
+                                    <div className="absolute inset-0 bg-white/40 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 skew-x-12"></div>
+                                    <span className="relative flex items-center justify-center gap-3">
+                                        INITIATE LEARNING <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                                    </span>
+                                </button>
 
-                        <button
-                            onClick={onLogin}
-                            className="group relative px-10 py-5 glass-panel border border-white/10 hover:border-neon-purple/50 text-white font-black text-xl rounded-2xl transition-all hover:bg-neon-purple/10 hover:scale-105 active:scale-95 overflow-hidden"
-                        >
-                            <div className="absolute inset-0 bg-neon-purple/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                            <span className="relative">RESTORE SESSION</span>
-                        </button>
+                                <button
+                                    onClick={onLogin}
+                                    className="group relative px-10 py-5 glass-panel border border-white/10 hover:border-neon-purple/50 text-white font-black text-xl rounded-2xl transition-all hover:bg-neon-purple/10 hover:scale-105 active:scale-95 overflow-hidden"
+                                >
+                                    <div className="absolute inset-0 bg-neon-purple/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                                    <span className="relative">RESTORE SESSION</span>
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             </section>
@@ -302,15 +318,20 @@ export const Home: React.FC<HomeProps> = ({ onGetStarted, onLogin, onDevConsole,
                     <div className="absolute inset-0 bg-gradient-to-r from-neon-cyan/10 to-neon-purple/10"></div>
 
                     <div className="relative z-10 text-center md:text-left w-full">
-                        <h2 className="text-3xl md:text-4xl font-display font-bold mb-4 md:mb-6">Ready to Transform Your Future?</h2>
+                        <h2 className="text-3xl md:text-4xl font-display font-bold mb-4 md:mb-6">
+                            {isLoggedIn ? "Welcome Back to Your Journey" : "Ready to Transform Your Future?"}
+                        </h2>
                         <p className="text-lg md:text-xl text-gray-300 mb-6 md:mb-8">
-                            Join thousands of students and teachers who are already experiencing the power of Gyan.
+                            {isLoggedIn
+                                ? "Resume your progress and reach your goals with AI-powered personalized insights."
+                                : "Join thousands of students and teachers who are already experiencing the power of Gyan."
+                            }
                         </p>
                         <button
-                            onClick={onGetStarted}
+                            onClick={isLoggedIn ? onDashboard : onGetStarted}
                             className="w-full md:w-auto px-10 py-4 bg-white text-black font-bold text-xl rounded-xl hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                         >
-                            Join Now - It's Free
+                            {isLoggedIn ? "Go to Dashboard" : "Join Now - It's Free"}
                         </button>
                     </div>
 

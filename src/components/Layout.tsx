@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Zap, Wifi, WifiOff, Menu, X, Home, User, Settings, LogOut, BookOpen, Layers, Users, Calendar, ClipboardList, Trophy, FileText, Briefcase, Brain, School, LayoutDashboard, Megaphone } from 'lucide-react';
+import { Zap, Wifi, WifiOff, Menu, X, Home, User, Settings, LogOut, BookOpen, Layers, Users, Calendar, ClipboardList, Trophy, FileText, Briefcase, Brain, School, LayoutDashboard, Megaphone, AlertTriangle, Target } from 'lucide-react';
 import logoNew from '../assets/logo-new.png';
 
 
@@ -93,12 +93,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, logoUrl, userRole, cur
       setIsMenuOpen(false);
     };
 
-    const commonItems = [
+    const commonItems = !userRole ? [
       { label: 'Home', icon: Home, action: () => { navigate('HOME'); } },
       { label: 'About Us', icon: Layers, action: () => { navigate('ABOUT'); } },
       { label: 'Our Team', icon: Users, action: () => { navigate('TEAM'); } },
       { label: 'Contact', icon: FileText, action: () => { navigate('CONTACT'); } },
-    ];
+    ] : [];
 
     if (!userRole) {
       return [
@@ -124,10 +124,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, logoUrl, userRole, cur
       roleItems = [
         { label: 'My Profile', icon: User, action: () => { setShowProfileModal(true); setIsMenuOpen(false); } },
         { label: 'Dashboard', icon: LayoutDashboard, action: () => navigate('HOME') },
-        { label: 'My Classes', icon: Users, action: () => navigate('CLASSES') },
+        { label: 'Class & Attendance', icon: Users, action: () => navigate('CLASSES') },
         { label: 'Assignments', icon: ClipboardList, action: () => navigate('ASSIGNMENTS') },
-        { label: 'Attendance', icon: Calendar, action: () => navigate('ATTENDANCE') },
-        { label: 'Gradebook', icon: BookOpen, action: () => navigate('GRADEBOOK') },
+        { label: 'Learning Gaps', icon: AlertTriangle, action: () => navigate('GAPS') },
       ];
     } else if (userRole === 'ADMIN') {
       roleItems = [
@@ -248,7 +247,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, logoUrl, userRole, cur
                 <Menu className="w-5 h-5 md:w-6 md:h-6" />
               </button>
 
-              <div className="flex items-center gap-2 md:gap-3 group cursor-pointer" onClick={() => onNavigate?.('HOME')}>
+              <div className="flex items-center gap-2 md:gap-3 group cursor-pointer" onClick={() => onNavigate?.(userRole ? 'DASHBOARD' : 'HOME')}>
                 {logoUrl ? (
                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg overflow-hidden border border-neon-cyan/50 shadow-[0_0_10px_rgba(6,182,212,0.3)] group-hover:shadow-[0_0_15px_rgba(6,182,212,0.6)] transition-all">
                     <img src={logoUrl} alt="School Logo" className="w-full h-full object-cover" />
@@ -264,7 +263,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, logoUrl, userRole, cur
             <div className="flex items-center gap-6">
               <div className="hidden md:flex items-center gap-8 pr-6 border-r border-white/10">
                 {/* Section Links (Only for Home/Guest) */}
-                {(!userRole || activeTab === 'HOME') && (
+                {!userRole && (
                   <>
                     <button onClick={() => scrollToSection('features')} className="relative text-gray-400 hover:text-neon-cyan transition-colors text-xs font-bold tracking-[0.2em] uppercase group/nav transition-all">
                       FEATURES
@@ -274,20 +273,20 @@ export const Layout: React.FC<LayoutProps> = ({ children, logoUrl, userRole, cur
                       PRICING
                       <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 group-hover/nav:w-full shadow-[0_0_8px_#00f3ff]"></span>
                     </button>
+
+                    {/* Constant Policy/Info Links - Only for Guest */}
+                    {['ABOUT', 'TEAM', 'CONTACT'].map((item) => (
+                      <button
+                        key={item}
+                        onClick={() => onNavigate?.(item)}
+                        className="relative text-gray-400 hover:text-neon-cyan transition-colors text-xs font-bold tracking-[0.2em] uppercase group/nav transition-all"
+                      >
+                        {item}
+                        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 group-hover/nav:w-full shadow-[0_0_8px_#00f3ff]"></span>
+                      </button>
+                    ))}
                   </>
                 )}
-
-                {/* Constant Policy/Info Links */}
-                {['ABOUT', 'TEAM', 'CONTACT'].map((item) => (
-                  <button
-                    key={item}
-                    onClick={() => onNavigate?.(item)}
-                    className="relative text-gray-400 hover:text-neon-cyan transition-colors text-xs font-bold tracking-[0.2em] uppercase group/nav transition-all"
-                  >
-                    {item}
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-neon-cyan transition-all duration-300 group-hover/nav:w-full shadow-[0_0_8px_#00f3ff]"></span>
-                  </button>
-                ))}
               </div>
 
               {/* Action Area (Profile/Login) */}
@@ -343,12 +342,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, logoUrl, userRole, cur
           <div className="flex flex-col items-center md:items-start">
             <p>&copy; 2025 Gyan EdTech. <span className="block md:inline md:ml-2">Powered by <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 font-bold">Google Gemini</span></span></p>
           </div>
-          <div className="flex items-center gap-2 text-xs md:relative md:right-0">
-            {isAiOnline ? <Wifi className="w-3 h-3 text-green-500" /> : <WifiOff className="w-3 h-3 text-red-500" />}
-            <span className={isAiOnline ? 'text-green-500' : 'text-red-500'}>
-              {isAiOnline ? 'Connected to Gemini' : 'Check API Key Configuration'}
-            </span>
-          </div>
+
         </footer>
       </main>
     </div >

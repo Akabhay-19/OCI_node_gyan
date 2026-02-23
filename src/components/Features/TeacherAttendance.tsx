@@ -28,6 +28,12 @@ export const TeacherAttendance: React.FC<TeacherAttendanceProps> = ({ classrooms
     const [showMissedPrompt, setShowMissedPrompt] = useState(false);
     const [missedDate, setMissedDate] = useState<string>("");
 
+    useEffect(() => {
+        if (classrooms.length === 1 && !selectedClassId) {
+            handleClassSelect(classrooms[0].id);
+        }
+    }, [classrooms]);
+
     const handleClassSelect = async (classId: string) => {
         setSelectedClassId(classId);
         setIsLoading(true);

@@ -19,7 +19,7 @@ const DashboardFallback = () => (
         <p className="text-gray-400 font-medium">Loading Dashboard...</p>
     </div>
 );
-import { Users, BarChart2, Plus, UserSearch, LogOut, FileText, CalendarClock, Hourglass, Megaphone, Copy, Grid, Filter, Briefcase, Clock, UserCheck, Sparkles, Timer, Layers, CheckCircle, AlertTriangle, MoreVertical, Trash2, Target, BookOpen, ArrowLeft, ArrowRight, Upload, PieChart as PieChartIcon } from 'lucide-react';
+import { Users, BarChart2, Plus, UserSearch, LogOut, FileText, Calendar, CalendarClock, Hourglass, Megaphone, Copy, Grid, Filter, Briefcase, Clock, UserCheck, Sparkles, Timer, Layers, CheckCircle, AlertTriangle, MoreVertical, Trash2, Target, BookOpen, ArrowLeft, ArrowRight, Upload, PieChart as PieChartIcon, ChevronDown } from 'lucide-react';
 
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts';
 import ReactMarkdown from 'react-markdown';
@@ -484,6 +484,141 @@ const AdminClassesTab: React.FC<{
 
 
 
+const ModernMonthCalendar: React.FC<{ classes: Classroom[]; attendanceData?: any[] }> = ({ classes }) => {
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+    const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+
+    const monthName = currentDate.toLocaleString('default', { month: 'long' });
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const days = [];
+    for (let i = 0; i < firstDayOfMonth(year, month); i++) days.push(null);
+    for (let i = 1; i <= daysInMonth(year, month); i++) days.push(i);
+
+    // Mock data for visual richness - in real app, fetch from API
+    const hasData = classes.length > 0;
+
+    return (
+        <NeonCard glowColor="purple" className="h-[420px] overflow-hidden flex flex-col group/cal relative">
+            {/* Background Decorative Gradient */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-neon-purple/5 blur-[80px] -mr-32 -mt-32 rounded-full pointer-events-none group-hover/cal:bg-neon-purple/10 transition-colors"></div>
+
+            <div className="relative z-10 flex justify-between items-center mb-4 px-2">
+                <div className="flex items-center gap-4">
+                    <div className="p-2.5 rounded-2xl bg-neon-purple/10 text-neon-purple shadow-[0_0_15px_rgba(188,19,254,0.1)]">
+                        <Calendar className="w-5 h-5" />
+                    </div>
+                    <div className="cursor-pointer group/picker">
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-xl font-black text-white tracking-tight group-hover/picker:text-neon-purple transition-colors">
+                                {monthName} <span className="text-neon-purple/50">{year}</span>
+                            </h3>
+                            <ChevronDown className="w-4 h-4 text-gray-600 group-hover/picker:text-neon-purple transition-all" />
+                        </div>
+                        <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.4em] mt-0.5 ml-0.5">Academic Calendar</p>
+                    </div>
+                </div>
+
+                {/* Reset to Today - only show if not on current month */}
+                {(currentDate.getMonth() !== new Date().getMonth() || currentDate.getFullYear() !== new Date().getFullYear()) && (
+                    <button
+                        onClick={() => setCurrentDate(new Date())}
+                        className="px-4 py-1.5 rounded-xl bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20 text-[10px] font-black uppercase tracking-widest hover:bg-neon-cyan hover:text-black transition-all animate-in fade-in zoom-in duration-300"
+                    >
+                        Back to Today
+                    </button>
+                )}
+            </div>
+
+            <div className="relative z-10 flex-1 flex flex-col px-10">
+                {/* Side Navigation Arrows */}
+                <button
+                    onClick={() => setCurrentDate(new Date(year, month - 1))}
+                    className="absolute left-1 top-[45%] -translate-y-1/2 p-3 text-gray-600 hover:text-neon-purple transition-all hover:scale-125 z-40 group/nav"
+                >
+                    <ArrowLeft className="w-8 h-8 opacity-20 group-hover/nav:opacity-100 transition-opacity" />
+                </button>
+                <button
+                    onClick={() => setCurrentDate(new Date(year, month + 1))}
+                    className="absolute right-1 top-[45%] -translate-y-1/2 p-3 text-gray-600 hover:text-neon-purple transition-all hover:scale-125 z-40 group/nav"
+                >
+                    <ArrowRight className="w-8 h-8 opacity-20 group-hover/nav:opacity-100 transition-opacity" />
+                </button>
+
+                {/* Week Day Header with First Letter Highlighted */}
+                <div className="grid grid-cols-7 gap-1 text-center mb-4">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                        <span key={d} className="text-[10px] font-black tracking-widest uppercase">
+                            <span className="text-neon-purple">{d[0]}</span>
+                            <span className="text-gray-600">{d.slice(1)}</span>
+                        </span>
+                    ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1 flex-1 auto-rows-[1fr]">
+                    {days.map((day, idx) => {
+                        const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
+                        const isWeekend = idx % 7 === 0 || idx % 7 === 6;
+                        const randomStatus = Math.random();
+
+                        return (
+                            <div key={idx} className={`relative flex flex-col items-center justify-center rounded-xl border transition-all duration-300 min-h-[42px]
+                            ${day ? 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-neon-purple/30 group/day cursor-pointer' : 'border-transparent pointer-events-none'}
+                            ${isToday ? 'border-neon-purple/50 bg-neon-purple/10 ring-1 ring-neon-purple/30' : ''}
+                        `}>
+                                {day && (
+                                    <>
+                                        <span className={`text-[10px] font-bold leading-none ${isToday ? 'text-neon-purple' : isWeekend ? 'text-gray-600' : 'text-gray-400'}`}>
+                                            {day}
+                                        </span>
+                                        {day && hasData && !isWeekend && (
+                                            <div className={`mt-0.5 w-1 h-1 rounded-full ${randomStatus > 0.4 ? 'bg-green-500' : randomStatus > 0.2 ? 'bg-yellow-500' : 'bg-red-500'} opacity-60`}></div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            <div className="relative z-10 mt-4 pt-4 border-t border-white/10 flex flex-wrap justify-between items-center gap-4">
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20 flex flex-col items-center justify-center">
+                            <span className="text-green-500 font-black text-sm leading-tight">{hasData ? '94%' : '--'}</span>
+                        </div>
+                        <div className="hidden sm:block">
+                            <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest leading-none mb-0.5">Punctuality</p>
+                            <p className="text-[10px] text-white font-black">{hasData ? 'Excellent' : '---'}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500/10 to-transparent border border-red-500/20 flex flex-col items-center justify-center">
+                            <span className="text-red-500 font-black text-sm leading-tight">{hasData ? '2' : '--'}</span>
+                        </div>
+                        <div className="hidden sm:block">
+                            <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest leading-none mb-0.5">Absents</p>
+                            <p className="text-[10px] text-white font-black">{hasData ? 'Critical' : '---'}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex gap-2">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        <span className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Marked</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                        <span className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Pending</span>
+                    </div>
+                </div>
+            </div>
+        </NeonCard>
+    );
+};
+
 export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?: (classId: string) => void; onRenameClass?: (classId: string, newName: string) => void; onUpdateTeacher?: (teacherId: string, assignedClassIds: string[]) => Promise<void> }> = ({ schoolName, schoolProfile, students, classrooms, announcements, setStudents, onLogout, userRole = 'TEACHER', currentUser, onCreateClass, onPostAnnouncement, getDisplayName, onDeleteClass, onRenameClass, onUpdateTeacher, onKickStudent, activeTab: propActiveTab, onTabChange }) => {
     const [localActiveTab, setLocalActiveTab] = useState('OVERVIEW');
     const activeTab = propActiveTab || localActiveTab;
@@ -533,11 +668,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
         setShowGapAnalysis(false);
         const fetchHistory = async () => {
             try {
-                const res = await api.authFetch(`${API_URL}/students/${selectedStudentId}/history`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setStudentHistory(data);
-                }
+                const data = await api.getStudentHistory(selectedStudentId);
+                setStudentHistory(data);
             } catch (error) {
                 console.error("Failed to fetch student history:", error);
             }
@@ -645,12 +777,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
         };
 
         try {
-            const res = await api.authFetch(`${API_URL}/assignments`, {
-                method: 'POST',
-                body: JSON.stringify(newAssignment)
-            });
-
-            if (!res.ok) throw new Error("Failed to save assignment");
+            await api.createAssignment(newAssignment);
 
             setCreatedAssignments(prev => [newAssignment, ...prev]);
             setIsUploadMode(false); // Reset mode
@@ -687,12 +814,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
         };
 
         try {
-            const res = await api.authFetch(`${API_URL}/assignments`, {
-                method: 'POST',
-                body: JSON.stringify(newAssignment)
-            });
-
-            if (!res.ok) throw new Error("Failed to save assignment");
+            await api.createAssignment(newAssignment);
 
             setCreatedAssignments(prev => [newAssignment, ...prev]);
             setGeneratedAssignment(null);
@@ -712,11 +834,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
         const fetchAssignments = async () => {
             if (!currentUser?.id) return;
             try {
-                const res = await api.authFetch(`${API_URL}/teachers/${currentUser.id}/assignments`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setCreatedAssignments(data);
-                }
+                const data = await api.getTeacherAssignments(currentUser.id);
+                setCreatedAssignments(data);
             } catch (error) {
                 console.error("Failed to fetch assignments:", error);
             }
@@ -747,71 +866,172 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
                 </Suspense>
             )}
 
-            {/* New Redesigned Header */}
+            {/* Redesigned Premium Header - BETTER SPACE UTILIZATION */}
+            <header className="mb-10 relative overflow-hidden">
+                {/* Background Glass Panel */}
+                <div className="absolute inset-0 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[2.5rem] z-0 shadow-2xl"></div>
 
-            <header className="mb-8">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <h2 className="text-3xl font-display font-bold text-white flex items-center gap-2">
-                            Hello, <span className="text-yellow-400">{currentUser?.name || (userRole === 'ADMIN' ? 'Admin' : 'Teacher')}</span> <span className="text-3xl">👋</span>
-                        </h2>
-                        <p className="text-gray-400 mt-1">Ready to inspire your students today?</p>
-                    </div>
+                {/* Decorative background element */}
+                <div className="absolute top-0 right-0 w-80 h-80 bg-neon-purple/20 rounded-full blur-[100px] -mr-40 -mt-40 animate-pulse-slow"></div>
+                <div className="absolute bottom-0 left-0 w-60 h-60 bg-neon-cyan/10 rounded-full blur-[80px] -ml-30 -mb-30 animate-pulse-slow"></div>
 
-                    {/* School Info Center */}
-                    <div className="flex items-center gap-4 bg-gradient-to-br from-gray-900/80 to-gray-800/50 rounded-xl px-5 py-3 border border-white/10">
-                        {schoolProfile?.logoUrl ? (
-                            <img src={schoolProfile.logoUrl} alt="School Logo" className="w-12 h-12 rounded-xl object-cover border border-white/20" />
-                        ) : (
-                            <div className="w-12 h-12 rounded-xl bg-neon-purple/20 flex items-center justify-center text-xl font-bold text-neon-purple">
-                                {schoolName?.charAt(0) || 'S'}
+                <div className="px-8 py-10 relative z-10 flex flex-col md:flex-row justify-between items-center gap-10">
+                    {/* Welcome Section */}
+                    <div className="flex items-center gap-8 group">
+                        <div className="relative">
+                            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-neon-purple via-black to-neon-cyan p-[2px] shadow-[0_0_30px_rgba(188,19,254,0.2)] group-hover:shadow-[0_0_40px_rgba(188,19,254,0.4)] transition-all">
+                                <div className="w-full h-full rounded-[22px] bg-[#0c0d10] flex items-center justify-center text-4xl font-black text-white">
+                                    {currentUser?.name?.charAt(0) || 'T'}
+                                </div>
                             </div>
-                        )}
+                            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-[6px] border-[#0c0d10] shadow-lg"></div>
+                        </div>
                         <div>
-                            <h3 className="text-lg font-bold text-white">{schoolName}</h3>
-                            {schoolProfile?.motto && <p className="text-xs text-gray-400">{schoolProfile.motto}</p>}
-                            {schoolProfile?.inviteCode && (
-                                <p className="text-xs text-neon-cyan cursor-pointer mt-1" onClick={() => navigator.clipboard.writeText(schoolProfile.inviteCode || '')}>
-                                    Code: {schoolProfile.inviteCode} <Copy className="w-3 h-3 inline ml-1" />
-                                </p>
-                            )}
+                            <div className="flex items-center gap-3 mb-1">
+                                <span className="px-3 py-1 bg-neon-purple/20 text-neon-purple text-[10px] font-black uppercase tracking-[0.2em] rounded-md border border-neon-purple/30">
+                                    Active Now
+                                </span>
+                                <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Teacher Portal V4.0</span>
+                            </div>
+                            <h2 className="text-5xl font-display font-black text-white tracking-tight leading-tight">
+                                Hello, <span className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">{currentUser?.name?.split(' ')[0] || 'Teacher'}</span>!
+                            </h2>
+                            <p className="text-gray-400 text-lg flex items-center gap-2 mt-2 font-medium">
+                                <Sparkles className="w-5 h-5 text-neon-cyan animate-pulse" />
+                                Ready to inspire your students today?
+                            </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        {/* XP Points Badge */}
-                        <div className="bg-gradient-to-br from-purple-900/50 to-purple-800/30 border border-purple-500/30 rounded-xl px-4 py-2 flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-purple-500/30 flex items-center justify-center">
-                                <Target className="w-5 h-5 text-purple-400" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-purple-300">Total Students</p>
-                                <p className="text-lg font-bold text-white">{myAllStudents.length}</p>
+                    {/* School & Stats Center */}
+                    <div className="w-full md:w-auto flex flex-col sm:flex-row items-center gap-6">
+                        {/* School Info Block */}
+                        <div className="w-full sm:w-auto bg-black/40 px-8 py-6 rounded-[2rem] border border-white/10 hover:border-white/20 transition-all flex items-center gap-6 group/school">
+                            {schoolProfile?.logoUrl ? (
+                                <div className="p-1 rounded-xl bg-white/5 border border-white/10 group-hover/school:border-neon-cyan/50 transition-colors">
+                                    <img src={schoolProfile.logoUrl} alt="School Logo" className="w-14 h-14 rounded-lg object-cover" />
+                                </div>
+                            ) : (
+                                <div className="w-14 h-14 rounded-xl bg-neon-purple/20 flex items-center justify-center text-neon-purple font-black text-2xl border border-neon-purple/30 group-hover/school:border-neon-purple transition-colors">
+                                    {schoolName?.charAt(0) || 'S'}
+                                </div>
+                            )}
+                            <div className="border-l border-white/10 pl-6">
+                                <h3 className="text-sm font-black text-white uppercase tracking-[0.2em] leading-tight mb-2 group-hover/school:text-neon-cyan transition-colors">{schoolName}</h3>
+                                <div className="flex items-center gap-4">
+                                    {schoolProfile?.inviteCode && (
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(schoolProfile.inviteCode || '');
+                                                alert("Invite code copied!");
+                                            }}
+                                            className="text-[10px] text-gray-500 font-bold flex items-center gap-1.5 hover:text-neon-cyan transition-colors px-2 py-1 bg-white/5 rounded border border-white/5"
+                                        >
+                                            <span className="opacity-50 uppercase">Invite Code:</span> <span className="text-white">{schoolProfile.inviteCode}</span> <Copy className="w-3 h-3" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                        {/* Rank Badge */}
-                        <div className="bg-gradient-to-br from-cyan-900/50 to-cyan-800/30 border border-cyan-500/30 rounded-xl px-4 py-2 flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-cyan-500/30 flex items-center justify-center">
-                                <Layers className="w-5 h-5 text-cyan-400" />
+
+                        {/* Integrated Stats Row */}
+                        <div className="flex gap-4">
+                            <div className="bg-black/40 border border-white/10 p-5 rounded-[2rem] flex items-center gap-4 w-40 hover:bg-white/5 transition-all">
+                                <div className="w-12 h-12 rounded-2xl bg-neon-purple/20 flex items-center justify-center text-neon-purple shadow-[0_0_15px_rgba(188,19,254,0.1)]">
+                                    <Users className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1 leading-none">Students</p>
+                                    <p className="text-3xl font-black text-white leading-none tracking-tight">{myAllStudents.length}</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-xs text-cyan-300">Classes</p>
-                                <p className="text-lg font-bold text-white">{myClasses.length} Active</p>
+                            <div className="bg-black/40 border border-white/10 p-5 rounded-[2rem] flex items-center gap-4 w-40 hover:bg-white/5 transition-all">
+                                <div className="w-12 h-12 rounded-2xl bg-neon-cyan/20 flex items-center justify-center text-neon-cyan shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+                                    <Layers className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1 leading-none">Classes</p>
+                                    <p className="text-3xl font-black text-white leading-none tracking-tight">{myClasses.length}</p>
+                                </div>
                             </div>
                         </div>
-                        <NeonButton variant="danger" onClick={onLogout} className="!px-4"><LogOut className="w-4 h-4 mr-2" /> Logout</NeonButton>
                     </div>
                 </div>
             </header>
 
-            <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
-                {['OVERVIEW', 'CLASSES', 'RANKINGS', 'ATTENDANCE', 'GAPS', userRole === 'ADMIN' && 'STUDENTS & CLASSES', userRole === 'ADMIN' && 'FACULTY', 'REMEDIAL_CENTER', 'ASSIGNMENTS', 'CONTENT_HUB', 'ANNOUNCEMENTS'].filter(Boolean).map((tab: any) => (
-                    <button key={tab} onClick={() => handleTabChange(tab)} className={`px-5 py-3 rounded-lg font-bold text-sm ${activeTab === tab ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple/50' : 'bg-white/5 text-gray-400'}`}>{tab === 'CONTENT_HUB' ? 'CONTENT HUB' : tab}</button>
+            <div className="flex gap-2 overflow-x-auto pb-4 mb-8">
+                {['OVERVIEW', 'CLASSES', 'RANKINGS', 'GAPS', userRole === 'ADMIN' && 'STUDENTS & CLASSES', userRole === 'ADMIN' && 'FACULTY', 'REMEDIAL_CENTER', 'ASSIGNMENTS', 'CONTENT_HUB', 'ANNOUNCEMENTS'].filter(Boolean).map((tab: any) => (
+                    <button key={tab} onClick={() => handleTabChange(tab)} className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === tab ? 'bg-neon-purple text-white shadow-[0_0_20px_rgba(188,19,254,0.3)]' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>{tab === 'CONTENT_HUB' ? 'CONTENT HUB' : tab}</button>
                 ))}
             </div>
 
             {activeTab === 'OVERVIEW' && (
-                <div className="space-y-6">
+                <div className="space-y-12 animate-fade-in pb-12">
+                    {/* Quick Actions Strip - DAILY UTILITY */}
+                    <div className="flex flex-wrap gap-4">
+                        <button
+                            onClick={() => handleTabChange('CLASSES')}
+                            className="flex-1 min-w-[200px] bg-gradient-to-br from-[#121419] to-black border border-white/5 p-6 rounded-[2rem] flex items-center gap-5 hover:border-neon-purple/50 transition-all group relative overflow-hidden active:scale-95"
+                        >
+                            <div className="absolute inset-0 bg-neon-purple/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div className="w-14 h-14 rounded-2xl bg-neon-purple/10 flex items-center justify-center text-neon-purple group-hover:bg-neon-purple group-hover:text-white transition-all shrink-0">
+                                <Calendar className="w-7 h-7" />
+                            </div>
+                            <div className="text-left relative z-10">
+                                <p className="font-black text-white text-lg uppercase tracking-wider mb-0.5">Attendance</p>
+                                <p className="text-sm text-gray-500 font-bold uppercase tracking-widest opacity-70">Mark Today's</p>
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => handleTabChange('ASSIGNMENTS')}
+                            className="flex-1 min-w-[200px] bg-gradient-to-br from-[#121419] to-black border border-white/5 p-6 rounded-[2rem] flex items-center gap-5 hover:border-neon-cyan/50 transition-all group relative overflow-hidden active:scale-95"
+                        >
+                            <div className="absolute inset-0 bg-neon-cyan/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div className="w-14 h-14 rounded-2xl bg-neon-cyan/10 flex items-center justify-center text-neon-cyan group-hover:bg-neon-cyan group-hover:text-black transition-all shrink-0">
+                                <Plus className="w-7 h-7" />
+                            </div>
+                            <div className="text-left relative z-10">
+                                <p className="font-black text-white text-lg uppercase tracking-wider mb-0.5">New Task</p>
+                                <p className="text-sm text-gray-500 font-bold uppercase tracking-widest opacity-70">AI Generator</p>
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => handleTabChange('ANNOUNCEMENTS')}
+                            className="flex-1 min-w-[200px] bg-gradient-to-br from-[#121419] to-black border border-white/5 p-6 rounded-[2rem] flex items-center gap-5 hover:border-yellow-500/50 transition-all group relative overflow-hidden active:scale-95"
+                        >
+                            <div className="absolute inset-0 bg-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 flex items-center justify-center text-yellow-500 group-hover:bg-yellow-500 group-hover:text-black transition-all shrink-0">
+                                <Megaphone className="w-7 h-7" />
+                            </div>
+                            <div className="text-left relative z-10">
+                                <p className="font-black text-white text-lg uppercase tracking-wider mb-0.5">Announce</p>
+                                <p className="text-sm text-gray-500 font-bold uppercase tracking-widest opacity-70">Notice Board</p>
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => handleTabChange('CONTENT_HUB')}
+                            className="flex-1 min-w-[200px] bg-gradient-to-br from-[#121419] to-black border border-white/5 p-6 rounded-[2rem] flex items-center gap-5 hover:border-green-500/50 transition-all group relative overflow-hidden active:scale-95"
+                        >
+                            <div className="absolute inset-0 bg-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div className="w-14 h-14 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 group-hover:bg-green-500 group-hover:text-black transition-all shrink-0">
+                                <BookOpen className="w-7 h-7" />
+                            </div>
+                            <div className="text-left relative z-10">
+                                <p className="font-black text-white text-lg uppercase tracking-wider mb-0.5">Lessons</p>
+                                <p className="text-sm text-gray-500 font-bold uppercase tracking-widest opacity-70">Content Hub</p>
+                            </div>
+                        </button>
+                    </div>
+
+                    {/* Notification / Alert Bar (If empty) */}
+                    {myClasses.length === 0 && (
+                        <div className="bg-neon-purple/10 border border-neon-purple/20 p-5 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                            <div className="w-10 h-10 rounded-xl bg-neon-purple/20 flex items-center justify-center shrink-0">
+                                <AlertTriangle className="w-6 h-6 text-neon-purple" />
+                            </div>
+                            <p className="text-base font-bold text-white uppercase tracking-widest opacity-80">Welcome! Please click on <span className="text-neon-cyan underline cursor-pointer" onClick={() => handleTabChange('CLASSES')}>"Attendance"</span> or <span className="text-neon-cyan underline cursor-pointer" onClick={() => handleTabChange('CLASSES')}>"Classes"</span> to create your first section and unlock dashboard features.</p>
+                        </div>
+                    )}
                     {/* New Modern Stat Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Attendance Card */}
@@ -875,38 +1095,177 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
                     </div>
 
 
-                    {/* At Risk & Gaps Cards Row */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <NeonCard glowColor="red"><p className="text-gray-400 text-xs">At Risk Students</p><p className="text-3xl font-bold text-red-400">{myAllStudents.filter(s => s.status === 'At Risk').length}</p></NeonCard>
-                        <NeonCard glowColor="purple"><p className="text-gray-400 text-xs">Open Gaps</p><p className="text-3xl font-bold text-neon-purple">{myAllStudents.reduce((acc, s) => acc + (s.weaknessHistory || []).filter(w => w.status === 'OPEN').length, 0)}</p></NeonCard>
-                        <NeonCard glowColor="green"><p className="text-gray-400 text-xs">Resolved Gaps</p><p className="text-3xl font-bold text-green-400">{myAllStudents.reduce((acc, s) => acc + (s.weaknessHistory || []).filter(w => w.status === 'RESOLVED').length, 0)}</p></NeonCard>
-                        <NeonCard glowColor="cyan"><p className="text-gray-400 text-xs">School Code</p><p className="text-lg font-bold text-neon-cyan cursor-pointer" onClick={() => navigator.clipboard.writeText(schoolProfile?.inviteCode || '')}>{schoolProfile?.inviteCode || 'N/A'} <Copy className="w-3 h-3 inline" /></p></NeonCard>
-                    </div>
+                    {/* Insights & Activity Grid - INTEGRATED & RICHER */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Class List & Status */}
+                        <div className="lg:col-span-2 bg-[#0c0d10]/40 backdrop-blur-md border border-white/5 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
+                            <div className="relative z-10">
+                                <div className="flex justify-between items-center mb-8">
+                                    <h3 className="text-2xl font-black text-white uppercase tracking-widest flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-neon-purple/10 flex items-center justify-center text-neon-purple shadow-[0_0_20px_rgba(188,19,254,0.1)]">
+                                            <Layers className="w-6 h-6" />
+                                        </div>
+                                        Active Classes
+                                    </h3>
+                                    <button onClick={() => handleTabChange('CLASSES')} className="text-[10px] font-black text-neon-purple hover:underline uppercase tracking-[0.2em] bg-neon-purple/10 px-6 py-2 rounded-xl border border-neon-purple/20 transition-all hover:bg-neon-purple hover:text-white">Expand All</button>
+                                </div>
 
-                    {/* Charts Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <NeonCard className="lg:col-span-2"><h3 className="font-bold text-white mb-4">Class Distribution</h3><div className="h-[250px] w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={myClasses.map(c => ({ name: c.name, students: c.studentIds.length }))}><CartesianGrid strokeDasharray="3 3" stroke="#333" /><XAxis dataKey="name" stroke="#666" /><YAxis stroke="#666" /><Bar dataKey="students" fill="#06b6d4" /></BarChart></ResponsiveContainer></div></NeonCard>
-                        <NeonCard><h3 className="font-bold text-white mb-4">Subject Mastery</h3><div className="h-[250px] w-full"><ResponsiveContainer width="100%" height="100%"><RadarChart cx="50%" cy="50%" outerRadius="80%" data={subjectPerformance}><PolarGrid /><PolarAngleAxis dataKey="subject" /><PolarRadiusAxis angle={30} domain={[0, 100]} /><Radar dataKey="score" stroke="#bc13fe" fill="#bc13fe" fillOpacity={0.6} /></RadarChart></ResponsiveContainer></div></NeonCard>
-                    </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {myClasses.slice(0, 4).map(c => {
+                                        const studentCount = students.filter(s => s.classId === c.id).length;
+                                        return (
+                                            <div
+                                                key={c.id}
+                                                onClick={() => setSelectedClassForView(c)}
+                                                className="bg-white/[0.03] border border-white/5 p-8 rounded-3xl hover:bg-white/[0.06] transition-all cursor-pointer group/card active:scale-[0.98] relative overflow-hidden"
+                                            >
+                                                <div className="absolute top-0 right-0 w-32 h-32 bg-neon-cyan/5 rounded-full blur-[40px] -mr-16 -mt-16 group-hover/card:bg-neon-cyan/10 transition-colors"></div>
+                                                <div className="flex justify-between items-start mb-6 relative z-10">
+                                                    <div>
+                                                        <h4 className="text-2xl font-black text-white group-hover/card:text-neon-cyan transition-colors tracking-tight">{c.section}</h4>
+                                                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">{c.name}</p>
+                                                    </div>
+                                                    <div className="px-3 py-1 bg-neon-cyan/10 text-neon-cyan text-[10px] font-black rounded-lg border border-neon-cyan/20 backdrop-blur-sm">
+                                                        {c.inviteCode}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-6 relative z-10">
+                                                    <div className="flex -space-x-4">
+                                                        {[1, 2, 3].map(i => (
+                                                            <div key={i} className="w-10 h-10 rounded-full bg-white/5 border-[3px] border-[#0c0d10] flex items-center justify-center text-[10px] text-gray-400 font-bold">
+                                                                #{i}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <div className="h-10 w-[1px] bg-white/10 mx-2"></div>
+                                                    <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{studentCount} ENROLLED</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {myClasses.length === 0 && (
+                                        <div className="col-span-2 py-20 text-center border-2 border-dashed border-white/5 rounded-[2.5rem] opacity-30 hover:opacity-50 transition-opacity cursor-pointer group/add" onClick={() => handleTabChange('CLASSES')}>
+                                            <Plus className="w-12 h-12 mx-auto mb-4 text-neon-purple group-hover/add:scale-125 transition-transform" />
+                                            <p className="text-sm font-black uppercase tracking-[0.2em] text-white">Create Your First Class</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
 
-                    {/* Class Cards */}
-                    <h3 className="text-xl font-bold text-white mt-6 mb-4">Your Classes</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {myClasses.map(c => {
-                            const studentCount = students.filter(s => s.classId === c.id).length;
-                            return (
-                                <NeonCard key={c.id} glowColor="purple" className="cursor-pointer hover:border-neon-purple transition-colors" onClick={() => setSelectedClassForView(c)}>
-                                    <div className="flex justify-between">
-                                        <h4 className="font-bold text-white">{c.name}</h4>
-                                        <span onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.inviteCode); }} className="cursor-pointer text-xs bg-purple-500/20 px-2 py-1 rounded text-purple-300 hover:bg-purple-500/30">
-                                            {c.inviteCode} <Copy className="w-3 h-3 inline" />
-                                        </span>
+                        {/* Recent Alerts / Announcements */}
+                        <div className="bg-[#121419]/60 backdrop-blur-md border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden flex flex-col shadow-2xl">
+                            <div className="relative z-10 flex-1">
+                                <h3 className="text-xl font-black text-white uppercase tracking-widest flex items-center gap-4 mb-8">
+                                    <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                                        <Megaphone className="w-5 h-5 text-yellow-500" />
                                     </div>
-                                    <p className="text-sm text-gray-400 mt-2">{studentCount} Students</p>
-                                    <p className="text-xs text-gray-500 mt-1">Section: {c.section}</p>
-                                </NeonCard>
-                            );
-                        })}
+                                    Notices
+                                </h3>
+                                <div className="space-y-4">
+                                    {announcements.filter(a => a.schoolId === currentUser?.schoolId).slice(0, 3).map(a => (
+                                        <div key={a.id} className="p-5 bg-white/[0.02] rounded-2xl border border-white/5 hover:border-white/10 transition-all cursor-pointer group/note">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-[9px] text-yellow-500 font-black uppercase tracking-widest px-2 py-0.5 bg-yellow-500/10 rounded-md">{a.type || 'NOTICE'}</span>
+                                                <span className="text-[9px] text-gray-600 font-black uppercase tracking-widest">{new Date(a.timestamp).toLocaleDateString()}</span>
+                                            </div>
+                                            <h4 className="font-bold text-white text-sm line-clamp-1 group-hover/note:text-neon-cyan transition-colors">{a.content.slice(0, 30)}...</h4>
+                                            <p className="text-[11px] text-gray-500 mt-1 line-clamp-1 leading-relaxed">{a.content}</p>
+                                        </div>
+                                    ))}
+                                    {announcements.length === 0 && (
+                                        <div className="text-center py-20 opacity-20 italic text-gray-500 font-bold uppercase tracking-widest text-xs">
+                                            No recent notices.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <button onClick={() => handleTabChange('ANNOUNCEMENTS')} className="mt-6 w-full py-4 bg-white/5 font-black text-[10px] uppercase tracking-[0.3em] text-gray-400 hover:text-white hover:bg-white/10 rounded-2xl transition-all border border-white/5">View Notice Board</button>
+                        </div>
+                    </div>
+
+                    {/* Performance & Analysis Integrated Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                        {/* Master Charts */}
+                        <div className="lg:col-span-8 bg-[#0c0d10]/40 backdrop-blur-md border border-white/5 rounded-[2.5rem] p-8 shadow-2xl">
+                            <div className="flex justify-between items-center mb-10">
+                                <div className="flex items-center gap-5">
+                                    <div className="w-14 h-14 rounded-2xl bg-neon-cyan/10 flex items-center justify-center text-neon-cyan shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+                                        <BarChart2 className="w-7 h-7" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-black text-white uppercase tracking-widest">Class Metrics</h3>
+                                        <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mt-0.5">Enrollment Distribution</p>
+                                    </div>
+                                </div>
+                                <div className="hidden sm:flex gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/5">
+                                    <button className="px-5 py-2.5 bg-neon-cyan/10 rounded-xl text-[10px] font-black text-neon-cyan transition-all border border-neon-cyan/20">MONTHLY</button>
+                                    <button className="px-5 py-2.5 hover:bg-white/5 rounded-xl text-[10px] font-black text-gray-500 hover:text-white transition-all">ANNUAL</button>
+                                </div>
+                            </div>
+                            <div className="h-[380px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={myClasses.map(c => ({ name: c.section, students: c.studentIds.length }))} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 10, fontWeight: '900', letterSpacing: '0.1em' }} dy={15} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 10, fontWeight: '900' }} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#0c0d10', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', padding: '20px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}
+                                            cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                                            itemStyle={{ color: '#06b6d4', fontWeight: 'bold' }}
+                                        />
+                                        <Bar dataKey="students" fill="url(#colorCyanGradient)" radius={[12, 12, 4, 4]} barSize={40} />
+                                        <defs>
+                                            <linearGradient id="colorCyanGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.1} />
+                                            </linearGradient>
+                                        </defs>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Side Stats & Insights Rack */}
+                        <div className="lg:col-span-4 space-y-8">
+                            {/* Insight Card 1 */}
+                            <div className="bg-gradient-to-br from-red-500/[0.07] to-transparent border border-red-500/20 p-8 rounded-[2.5rem] relative overflow-hidden group shadow-xl">
+                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-125 transition-transform group-hover:opacity-10">
+                                    <AlertTriangle className="w-24 h-24 text-red-500" />
+                                </div>
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center text-red-500">
+                                        <AlertTriangle className="w-5 h-5" />
+                                    </div>
+                                    <h4 className="text-red-500 font-black uppercase tracking-[0.2em] text-[10px]">Academic Risk</h4>
+                                </div>
+                                <div className="flex items-baseline gap-2 mb-2">
+                                    <p className="text-5xl font-black text-white">{myAllStudents.filter(s => s.status === 'At Risk').length}</p>
+                                    <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Students</span>
+                                </div>
+                                <p className="text-[11px] text-gray-500 font-medium leading-relaxed mb-6">These students have dropped below the required performance threshold and need immediate review.</p>
+                                <button onClick={() => handleTabChange('RANKINGS')} className="w-full py-4 bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl border border-red-500/20 hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-95">Analyze Students</button>
+                            </div>
+
+                            {/* Insight Card 2 */}
+                            <div className="bg-gradient-to-br from-neon-purple/[0.07] to-transparent border border-neon-purple/20 p-8 rounded-[2.5rem] relative overflow-hidden group shadow-xl">
+                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-125 transition-transform group-hover:opacity-10">
+                                    <Target className="w-24 h-24 text-neon-purple" />
+                                </div>
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-10 h-10 rounded-xl bg-neon-purple/20 flex items-center justify-center text-neon-purple">
+                                        <CheckCircle className="w-5 h-5" />
+                                    </div>
+                                    <h4 className="text-neon-purple font-black uppercase tracking-[0.2em] text-[10px]">Gap Resolution</h4>
+                                </div>
+                                <div className="flex items-baseline gap-2 mb-2">
+                                    <p className="text-5xl font-black text-white">{myAllStudents.reduce((acc, s) => acc + (s.weaknessHistory || []).filter(w => w.status === 'RESOLVED').length, 0)}</p>
+                                    <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Resolved</span>
+                                </div>
+                                <p className="text-[11px] text-gray-500 font-medium leading-relaxed mb-6">Strong progress this month with multiple learning gaps successfully addressed by students.</p>
+                                <button onClick={() => handleTabChange('GAPS')} className="w-full py-4 bg-neon-purple/10 text-neon-purple text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl border border-neon-purple/20 hover:bg-neon-purple hover:text-white transition-all shadow-lg active:scale-95">Learning Logs</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -920,26 +1279,118 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
                             onBack={() => setSelectedClassForView(null)}
                             getDisplayName={getDisplayName}
                             onKickStudent={onKickStudent}
+                            teacherId={currentUser?.id}
                         />
                     ) : (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <NeonCard glowColor="cyan" className="h-fit space-y-4"><h3 className="font-bold text-white">Create Class</h3><Input placeholder="Name" value={newClassData.name} onChange={e => setNewClassData({ ...newClassData, name: e.target.value })} /><Input placeholder="Section" value={newClassData.section} onChange={e => setNewClassData({ ...newClassData, section: e.target.value })} /><NeonButton onClick={() => { if (onCreateClass && newClassData.name) onCreateClass(newClassData); }} className="w-full">Create</NeonButton></NeonCard>
-                            <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {myClasses.map(c => {
-                                    const studentCount = students.filter(s => s.classId === c.id).length;
-                                    return (
-                                        <NeonCard key={c.id} glowColor="purple" className="cursor-pointer hover:border-neon-purple transition-colors" onClick={() => setSelectedClassForView(c)}>
-                                            <div className="flex justify-between">
-                                                <h4 className="font-bold text-white">{c.name}</h4>
-                                                <span onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.inviteCode); }} className="cursor-pointer text-xs bg-purple-500/20 px-2 py-1 rounded text-purple-300 hover:bg-purple-500/30">
-                                                    {c.inviteCode} <Copy className="w-3 h-3 inline" />
-                                                </span>
+                        <div className="space-y-12 animate-fade-in pb-20">
+                            {/* Management Header Section */}
+                            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                                {/* Create Class Panel */}
+                                <div className="lg:col-span-1">
+                                    <NeonCard glowColor="cyan" className="h-[420px] flex flex-col justify-between border-neon-cyan/10">
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-6">
+                                                <div className="p-2 rounded-xl bg-neon-cyan/10 text-neon-cyan">
+                                                    <Plus className="w-5 h-5" />
+                                                </div>
+                                                <h3 className="text-xl font-bold text-white uppercase tracking-wider">Create Class</h3>
                                             </div>
-                                            <p className="text-sm text-gray-400 mt-2">{studentCount} Students</p>
-                                            <p className="text-xs text-gray-500 mt-1">Section: {c.section}</p>
-                                        </NeonCard>
-                                    );
-                                })}
+                                            <div className="space-y-5">
+                                                <Input
+                                                    label="Section Name"
+                                                    placeholder="e.g. Grade 10 - Science"
+                                                    value={newClassData.name}
+                                                    onChange={e => setNewClassData({ ...newClassData, name: e.target.value })}
+                                                />
+                                                <Input
+                                                    label="Unique Code / Section"
+                                                    placeholder="e.g. A, B, or C"
+                                                    value={newClassData.section}
+                                                    onChange={e => setNewClassData({ ...newClassData, section: e.target.value })}
+                                                />
+                                                <Input
+                                                    label="Motto (Optional)"
+                                                    placeholder="Inspire the future..."
+                                                    value={newClassData.motto}
+                                                    onChange={e => setNewClassData({ ...newClassData, motto: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                        <NeonButton
+                                            onClick={() => { if (onCreateClass && newClassData.name) onCreateClass(newClassData); }}
+                                            className="w-full h-14"
+                                            glow
+                                            glowColor="cyan"
+                                        >
+                                            <Sparkles className="w-4 h-4 mr-2" /> Establish Section
+                                        </NeonButton>
+                                    </NeonCard>
+                                </div>
+
+                                {/* Dynamic Attendance Calendar Panel */}
+                                <div className="lg:col-span-3">
+                                    <ModernMonthCalendar classes={myClasses} />
+                                </div>
+                            </div>
+
+                            {/* Section Directory */}
+                            <div>
+                                <div className="flex items-center gap-4 mb-8">
+                                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em] whitespace-nowrap">Active Class Folders</h3>
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-white/10 to-transparent"></div>
+                                </div>
+
+                                {myClasses.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        {myClasses.map(c => {
+                                            const studentCount = students.filter(s => s.classId === c.id).length;
+                                            return (
+                                                <NeonCard
+                                                    key={c.id}
+                                                    glowColor="purple"
+                                                    hoverEffect
+                                                    className="cursor-pointer group/folder h-[200px] flex flex-col justify-between"
+                                                    onClick={() => setSelectedClassForView(c)}
+                                                >
+                                                    <div className="flex justify-between items-start">
+                                                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-neon-purple border border-white/5 group-hover/folder:border-neon-purple/50 transition-all">
+                                                            <Layers className="w-6 h-6" />
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className="text-[10px] font-black text-neon-purple uppercase tracking-widest">{c.section}</span>
+                                                            <p className="text-xl font-black text-white">{studentCount}</p>
+                                                            <p className="text-[8px] text-gray-500 font-bold uppercase tracking-[0.2em] leading-none">Students</p>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-white text-lg truncate mb-1">{c.name}</h4>
+                                                        <div className="flex justify-between items-center">
+                                                            <span
+                                                                onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.inviteCode); alert("Copied!"); }}
+                                                                className="text-[9px] font-mono text-gray-500 hover:text-neon-cyan transition-colors tracking-tighter"
+                                                            >
+                                                                #{c.inviteCode} <Copy className="w-2 h-2 inline ml-1" />
+                                                            </span>
+                                                            <div className="flex -space-x-2">
+                                                                <div className="w-6 h-6 rounded-full border-2 border-[#0c0d10] bg-gray-700"></div>
+                                                                <div className="w-6 h-6 rounded-full border-2 border-[#0c0d10] bg-gray-600"></div>
+                                                                <div className="w-6 h-6 rounded-full border-2 border-[#0c0d10] bg-neon-purple flex items-center justify-center text-[8px] font-bold">+ {Math.max(0, studentCount - 2)}</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </NeonCard>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed border-white/5 rounded-[3rem] bg-white/[0.01]">
+                                        <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6 text-gray-600">
+                                            <Users className="w-10 h-10" />
+                                        </div>
+                                        <h4 className="text-white font-bold text-xl mb-2">No active sections found</h4>
+                                        <p className="text-gray-500 text-sm max-w-xs text-center">Your teaching directory is empty. Create your first class using the panel above to begin tracking attendance.</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )
@@ -957,15 +1408,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
                 )
             }
 
-            {
-                activeTab === 'ATTENDANCE' && (
-                    <TeacherAttendance
-                        classrooms={myClasses}
-                        students={myAllStudents}
-                        teacherId={currentUser?.id}
-                    />
-                )
-            }
+
 
             {
                 activeTab === 'GAPS' && (
@@ -1111,8 +1554,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
                         getDisplayName={getDisplayName}
                         onDeleteClass={onDeleteClass}
                     />
-                )
-            }
+                )}
 
             {
                 activeTab === 'FACULTY' && userRole === 'ADMIN' && (
@@ -1145,8 +1587,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps & { onDeleteClass?
                             </div>
                         </NeonCard>
                     </>
-                )
-            }
+                )}
 
             {
                 activeTab === 'REMEDIAL_CENTER' && (

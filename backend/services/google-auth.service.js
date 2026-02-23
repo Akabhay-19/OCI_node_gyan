@@ -225,8 +225,8 @@ export const handleGoogleAuth = async (supabase, idToken, role) => {
             throw new Error(createError.message);
         }
 
-        logger.info(`[Google Auth] Successfully created new user: ${newUser.id}`);
-        return { success: true, user: newUser, isNewUser: true };
+        logger.warn(`[Google Auth] New user detected. Manual signup required for ${googleUser.email}`);
+        return { success: false, error: "NEW_GOOGLE_USER", email: googleUser.email};
 
     } catch (err) {
         logger.error(`[Google Auth] Global Error: ${err.message}`);
