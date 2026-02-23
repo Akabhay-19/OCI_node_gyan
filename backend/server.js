@@ -134,9 +134,9 @@ app.use('/api', apiLimiter);
 // 4. Gzip Compression (Speed up responses)
 app.use(compression());
 
-// 5. Strict Body Limits
-app.use(express.json({ limit: '20kb' })); // Small limit for typical JSON
-app.use(express.urlencoded({ limit: '20kb', extended: true }));
+// 5. Body Limits (increased for school data, image uploads, etc.)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Multer Config
 const upload = multer({ dest: 'uploads/' });
