@@ -334,7 +334,7 @@ export const DeveloperConsole: React.FC<{ onBack: () => void }> = ({ onBack }) =
 
                 {displayMode === 'PATENT' ? (
                     <div className="space-y-8">
-                        <NeonCard className="p-8" glowColor="pink">
+                        <NeonCard className="p-8" glowColor="purple">
                             <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-purple-600 mb-6">
                                 GyanAI Adaptive Learning System (Patent Pending)
                             </h2>

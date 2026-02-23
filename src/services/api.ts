@@ -328,6 +328,34 @@ export const api = {
         return res.json();
     },
 
+    getTeacherAssignments: async (teacherId: string): Promise<any[]> => {
+        const res = await api.authFetch(`${API_URL}/teachers/${teacherId}/assignments`);
+        if (!res.ok) return [];
+        return res.json();
+    },
+
+    createAssignment: async (assignment: any): Promise<any> => {
+        const res = await api.authFetch(`${API_URL}/assignments`, {
+            method: 'POST',
+            body: JSON.stringify(assignment)
+        });
+        if (!res.ok) throw new Error("Failed to create assignment");
+        return res.json();
+    },
+
+    getAssignments: async (schoolId: string, classId?: string): Promise<any[]> => {
+        const url = classId ? `${API_URL}/assignments?schoolId=${schoolId}&classId=${classId}` : `${API_URL}/assignments?schoolId=${schoolId}`;
+        const res = await api.authFetch(url);
+        if (!res.ok) return [];
+        return res.json();
+    },
+
+    getStudentHistory: async (studentId: string): Promise<any[]> => {
+        const res = await api.authFetch(`${API_URL}/students/${studentId}/history`);
+        if (!res.ok) return [];
+        return res.json();
+    },
+
     getModuleHistory: async (studentId: string): Promise<any[]> => {
         const res = await api.authFetch(`${API_URL}/students/${studentId}/modules`);
         if (!res.ok) return [];

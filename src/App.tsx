@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { api } from './services/api';
 import { Layout } from './components/Layout';
@@ -11,6 +11,8 @@ import { SmoothScroll } from './components/SmoothScroll';
 import { GRADE_SUBJECTS } from './constants';
 import { useAppData } from './hooks/useAppData';
 import { useAuth } from './hooks/useAuth';
+import { GlobalNotice } from './components/GlobalNotice';
+import { noticeService } from './services/noticeService';
 
 // Lazy load components for performance
 
@@ -116,7 +118,7 @@ const AppContent: React.FC = () => {
 
       window.location.reload();
     } catch (e) {
-      alert("Migration failed. See console.");
+      noticeService.error('Migration failed. Please check your connection and try again.');
     }
   };
 
@@ -190,17 +192,17 @@ const AppContent: React.FC = () => {
       setSchools(prev => [...prev, newSchool]);
       setAppState(prev => ({ ...prev, userRole: 'ADMIN', schoolName: newSchool.name, schoolId: newSchool.id, schoolLogo: newSchool.logoUrl }));
       navigate('/dashboard');
-      alert(`School Created Successfully!\n\nSchool Invite Code: ${uniqueCode}\n\nShare this code with teachers and students to join.`);
+      noticeService.success(`School created! Invite Code: ${uniqueCode} — Share this with teachers and students.`, 8000);
     } catch (e: any) {
       console.error(e);
-      alert(`Failed to register school: ${e.message || "Unknown error"}`);
+      noticeService.handleApiError(e, 'Failed to register school. Please try again.');
     }
   }, [navigate, setAppState, setSchools]);
 
   const handleSyncUserToSchool = React.useCallback(async (schoolId: string) => {
     // [FIX] Guard against missing signup data (e.g. on refresh)
     if (!tempSignupData) {
-      alert("Session expired. Please start the signup process again.");
+      noticeService.warning('Session expired. Please start the signup process again.');
       navigate('/auth');
       return;
     }
@@ -235,7 +237,7 @@ const AppContent: React.FC = () => {
       try {
         await api.createStudent(newStudent);
         setGlobalStudents(prev => [...prev, newStudent]);
-        alert(`Registration Successful!\n\nYour Username is: ${generatedUsername}\nPlease save this for login.`);
+        noticeService.success(`Registration successful! Your username is: ${generatedUsername} — Please save this for login.`, 8000);
         setAppState(prev => ({ ...prev, schoolName: targetSchool.name, schoolId: targetSchool.id, schoolLogo: targetSchool.logoUrl, currentUser: newStudent }));
         navigate('/class-selection');
       } catch (e: any) {
@@ -244,9 +246,6 @@ const AppContent: React.FC = () => {
         if (e.message?.includes('duplicate key') || e.message?.includes('violates unique constraint')) {
           console.log("Duplicate user detected. Attempting auto-login...");
           try {
-            // Try logging in with the email/password provided
-            // Note: api.login usually expects { username, password } or { email, password }
-            // We'll try passing email as username (backend auth logic dependent) or just the credentials object
             const loginRes = await api.login({
               username: tempSignupData.email || generatedUsername,
               password: tempSignupData.password,
@@ -262,7 +261,6 @@ const AppContent: React.FC = () => {
               currentUser: loginRes
             }));
 
-            // Route based on whether they have a class
             if (loginRes.classId) {
               navigate('/dashboard');
             } else {
@@ -271,10 +269,10 @@ const AppContent: React.FC = () => {
             return;
           } catch (loginErr) {
             console.error("Auto-login failed:", loginErr);
-            alert("User with this information already exists, but auto-login failed. Please go back and Login instead.");
+            noticeService.warning('An account with this information already exists. Please go back and login instead.');
           }
         } else {
-          alert(`Failed to join school: ${e.message || JSON.stringify(e)}`);
+          noticeService.handleApiError(e, 'Failed to join school. Please try again.');
         }
       }
     } else if (appState.userRole === 'TEACHER') {
@@ -296,12 +294,13 @@ const AppContent: React.FC = () => {
         // Update local schools state to include new faculty
         setSchools(prev => prev.map(s => s.id === targetSchool.id ? { ...s, faculty: [...(s.faculty || []), newTeacher] } : s));
         setAppState(prev => ({ ...prev, schoolName: targetSchool.name, schoolId: targetSchool.id, schoolLogo: targetSchool.logoUrl, currentUser: newTeacher }));
+        noticeService.success('Teacher account created successfully! Welcome to your school.');
         navigate('/dashboard/overview');
       } catch (e: any) {
         if (e.message?.includes('duplicate key') || e.message?.includes('violates unique constraint')) {
-          alert("Teacher already exists. Please login or use different credentials.");
+          noticeService.warning('A teacher account already exists with these credentials. Please login instead.');
         } else {
-          alert(`Failed to join school as teacher: ${e.message || JSON.stringify(e)}`);
+          noticeService.handleApiError(e, 'Failed to join school as teacher. Please try again.');
         }
       }
     }
@@ -329,7 +328,7 @@ const AppContent: React.FC = () => {
       c => c.name.toLowerCase() === className.toLowerCase() && c.section.toLowerCase() === data.section.toLowerCase()
     );
     if (duplicate) {
-      alert(`Section "${data.section}" for "${className}" already exists.`);
+      noticeService.warning(`Section "${data.section}" for "${className}" already exists.`);
       return;
     }
 
@@ -353,10 +352,10 @@ const AppContent: React.FC = () => {
     try {
       await api.createClassroom(newClass);
       setClassrooms(prev => [...prev, newClass]);
-      alert(`Created ${className} successfully!`);
+      noticeService.success(`${className} created successfully!`);
     } catch (e) {
       console.error(e);
-      alert("Failed to create classroom");
+      noticeService.handleApiError(e, 'Failed to create classroom. Please try again.');
     }
   }, [appState.currentUser, appState.schoolId, classrooms, setClassrooms]);
 
@@ -367,9 +366,9 @@ const AppContent: React.FC = () => {
       setClassrooms(prev => prev.map(c =>
         c.id === classId ? { ...c, status: 'ARCHIVED' as const, archivedAt: new Date().toISOString() } : c
       ));
-      alert('Section moved to archive. It will be permanently deleted after 7 days if not restored.');
+      noticeService.warning('Section archived. It will be permanently deleted after 7 days if not restored.');
     } catch (e) {
-      alert("Failed to archive class");
+      noticeService.handleApiError(e, 'Failed to archive class.');
     }
   }, [setClassrooms]);
 
@@ -381,10 +380,10 @@ const AppContent: React.FC = () => {
       await api.updateClassroom(classId, { status: 'ACTIVE', archivedAt: undefined });
 
       setClassrooms(prev => prev.map(c => c.id === classId ? { ...c, status: 'ACTIVE' as const, archivedAt: undefined } : c));
-      alert('Section restored successfully!');
+      noticeService.success('Section restored successfully!');
     } catch (error) {
       console.error('Failed to restore class:', error);
-      alert('Failed to restore section');
+      noticeService.handleApiError(error, 'Failed to restore section.');
     }
   }, [appState.userRole, setClassrooms]);
 
@@ -412,10 +411,10 @@ const AppContent: React.FC = () => {
         c.id === classId ? { ...c, studentIds: c.studentIds.filter(id => id !== studentId) } : c
       ));
 
-      alert('Student removed from class successfully');
+      noticeService.success('Student removed from class successfully.');
     } catch (error) {
       console.error('Failed to remove student:', error);
-      alert('Failed to remove student');
+      noticeService.handleApiError(error, 'Failed to remove student.');
     }
   }, [appState.userRole, appState.currentUser?.id, globalStudents, setAppState, setClassrooms, setGlobalStudents]);
 
@@ -431,7 +430,7 @@ const AppContent: React.FC = () => {
       }
       setGlobalStudents(prev => prev.map(s => s.classId === classId ? { ...s, classId: undefined } : s));
     } catch (e) {
-      alert("Failed to delete class");
+      noticeService.handleApiError(e, 'Failed to delete class.');
     }
   }, [globalStudents, setClassrooms, setGlobalStudents]);
 
@@ -467,7 +466,7 @@ const AppContent: React.FC = () => {
       setClassrooms(prev => prev.map(c => c.id === classId ? { ...c, status: newStatus } : c));
     } catch (e) {
       console.error("Failed to toggle class lock:", e);
-      alert("Failed to update class status");
+      noticeService.handleApiError(e, 'Failed to update class status.');
     }
   }, [setClassrooms]);
 
@@ -477,7 +476,7 @@ const AppContent: React.FC = () => {
       setClassrooms(prev => prev.map(c => ({ ...c, status: 'LOCKED' })));
     } catch (e) {
       console.error("Failed to lock all classes:", e);
-      alert("Failed to lock all classes");
+      noticeService.handleApiError(e, 'Failed to lock all classes.');
     }
   }, [classrooms, setClassrooms]);
 
@@ -491,7 +490,7 @@ const AppContent: React.FC = () => {
       })));
     } catch (e) {
       console.error(e);
-      alert("Failed to update teacher assignments");
+      noticeService.handleApiError(e, 'Failed to update teacher assignments.');
       throw e;
     }
   }, [setSchools]);
@@ -518,7 +517,7 @@ const AppContent: React.FC = () => {
         setClassrooms(prev => prev.map(c => c.id === targetClass.id ? { ...c, studentIds: updatedStudentIds } : c));
         return true;
       } catch (e: any) {
-        alert(`Failed to join class: ${e.message || "Unknown error"}`);
+        noticeService.handleApiError(e, 'Failed to join class. Please try again.');
         return false;
       }
     }
@@ -563,7 +562,7 @@ const AppContent: React.FC = () => {
 
     } catch (e: any) {
       console.error("Join Error:", e);
-      alert(`Failed to join class: ${e.message || JSON.stringify(e)}`);
+      noticeService.handleApiError(e, 'Failed to join class. Please try again.');
     }
   };
 
@@ -582,8 +581,9 @@ const AppContent: React.FC = () => {
     try {
       await api.createAnnouncement(newAnnouncement);
       setAnnouncements(prev => [newAnnouncement, ...prev]);
+      noticeService.success('Announcement posted successfully!');
     } catch (e) {
-      alert("Failed to post announcement");
+      noticeService.handleApiError(e, 'Failed to post announcement.');
     }
   };
 
@@ -633,7 +633,7 @@ const AppContent: React.FC = () => {
       navigate(nextRoute);
     } catch (e: any) {
       console.error("Login Failed:", e);
-      alert(e.message || "Invalid Credentials");
+      noticeService.error(noticeService.mapApiError(e));
     }
   }, [navigate, schools, setAppState]);
 
@@ -702,7 +702,7 @@ const AppContent: React.FC = () => {
 
     } catch (e: any) {
       console.error("Bulk Join Error:", e);
-      alert(`Failed to join classes: ${e.message}`);
+      noticeService.handleApiError(e, 'Failed to join classes. Please try again.');
     }
   };
 
@@ -736,6 +736,8 @@ const AppContent: React.FC = () => {
     } else if (tab === 'ROLE_SELECTION') {
       setAuthMode('login');
       navigate('/auth');
+    } else if (tab === 'DASHBOARD') {
+      navigate('/dashboard');
     } else if (tab === 'HOME' && !appState.userRole) {
       navigate('/');
     } else {
@@ -780,6 +782,7 @@ const AppContent: React.FC = () => {
 
   return (
     <SmoothScroll>
+      <GlobalNotice />
       <Layout
         logoUrl={appState.schoolLogo}
         userRole={appState.userRole}
@@ -807,21 +810,27 @@ const AppContent: React.FC = () => {
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/" element={
-                <Home
-                  onGetStarted={() => { setAuthMode('signup'); navigate('/auth'); }}
-                  onLogin={() => { setAuthMode('login'); navigate('/auth'); }}
-                  onDevConsole={() => navigate('/developer')}
-                  onNavigate={(page) => {
-                    if (page === 'ABOUT') navigate('/about');
-                    else if (page === 'TEAM') navigate('/team');
-                    else if (page === 'CONTACT') navigate('/contact');
-                  }}
-                />
+                appState.currentUser ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <Home
+                    onGetStarted={() => { setAuthMode('signup'); navigate('/auth'); }}
+                    onLogin={() => { setAuthMode('login'); navigate('/auth'); }}
+                    onDashboard={() => navigate('/dashboard')}
+                    isLoggedIn={false}
+                    onDevConsole={() => navigate('/developer')}
+                    onNavigate={(page) => {
+                      if (page === 'ABOUT') navigate('/about');
+                      else if (page === 'TEAM') navigate('/team');
+                      else if (page === 'CONTACT') navigate('/contact');
+                    }}
+                  />
+                )
               } />
 
-              <Route path="/about" element={<AboutUs onBack={() => navigate('/')} />} />
-              <Route path="/team" element={<Team onBack={() => navigate('/')} />} />
-              <Route path="/contact" element={<Contact onBack={() => navigate('/')} />} />
+              <Route path="/about" element={appState.currentUser ? <Navigate to="/dashboard" replace /> : <AboutUs onBack={() => navigate('/')} />} />
+              <Route path="/team" element={appState.currentUser ? <Navigate to="/dashboard" replace /> : <Team onBack={() => navigate('/')} />} />
+              <Route path="/contact" element={appState.currentUser ? <Navigate to="/dashboard" replace /> : <Contact onBack={() => navigate('/')} />} />
 
               <Route path="/auth" element={
                 import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
@@ -903,7 +912,7 @@ const AppContent: React.FC = () => {
                         alert(`Failed to join. Please check the code: "${trimmedCode}"`);
                       }
                     }}
-                    onBack={() => { setAppState(prev => ({ ...prev, currentUser: undefined, userRole: null })); navigate('/auth'); }}
+                    onBack={() => navigate('/dashboard')}
                     currentUser={appState.currentUser}
                   />
                 ) : (
